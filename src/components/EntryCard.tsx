@@ -1,11 +1,15 @@
 // ─── FlowNote Streak — Journal Entry Card ────────────────────
+//
+// Redesigned to match reference Notes screen: dark card with
+// headline-style title, body text, and subtle hover border.
+// Uses the #0E0E1E card background with outline-variant border.
 
 import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Alert,
 } from 'react-native';
 import dayjs from 'dayjs';
@@ -22,12 +26,23 @@ interface EntryCardProps {
 }
 
 export function EntryCard({ entry, onPress, onDelete }: EntryCardProps) {
-  const dateDisplay = dayjs(entry.date).format('ddd, MMM D');
-  const timeAgo = dayjs(entry.updatedAt).fromNow();
-  const preview =
-    entry.content.length > 120
-      ? entry.content.slice(0, 120) + '…'
-      : entry.content;
+  const isToday = entry.date === dayjs().format('YYYY-MM-DD');
+  const isYesterday = entry.date === dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+
+  let dateDisplay: string;
+  if (isToday) {
+    dateDisplay = `Today, ${dayjs(entry.date).format('MMM D')}`;
+  } else if (isYesterday) {
+    dateDisplay = `Yesterday, ${dayjs(entry.date).format('MMM D')}`;
+  } else {
+    dateDisplay = dayjs(entry.date).format('MMM D');
+  }
+
+  // Extract first line as title (or use first 50 chars)
+  const lines = entry.content.split('\n').filter(l => l.trim());
+  const title = lines[0]?.slice(0, 60) || 'Untitled';
+  const body = lines.slice(1).join(' ').trim();
+  const preview = body.length > 160 ? body.slice(0, 160) + '...' : body;
 
   const handleLongPress = () => {
     Alert.alert('Delete Entry', 'Are you sure you want to delete this entry?', [
@@ -41,50 +56,93 @@ export function EntryCard({ entry, onPress, onDelete }: EntryCardProps) {
   };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => onPress(entry)}
-      onLongPress={handleLongPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.header}>
-        <Text style={styles.date}>{dateDisplay}</Text>
-        <Text style={styles.timeAgo}>{timeAgo}</Text>
+    <View style={styles.timelineItem}>
+      {/* Timeline dot */}
+      <View style={styles.dotColumn}>
+        <View
+          style={[
+            styles.dot,
+            isToday && styles.dotToday,
+          ]}
+        />
       </View>
-      <Text style={styles.preview} numberOfLines={3}>
-        {preview || 'Empty entry…'}
-      </Text>
-    </TouchableOpacity>
+
+      <View style={styles.contentColumn}>
+        {/* Date label */}
+        <Text style={[styles.dateLabel, isToday && styles.dateLabelToday]}>
+          {dateDisplay.toUpperCase()}
+        </Text>
+
+        {/* Card */}
+        <Pressable
+          style={styles.card}
+          onPress={() => onPress(entry)}
+          onLongPress={handleLongPress}
+        >
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {preview ? (
+            <Text style={styles.body} numberOfLines={4}>{preview}</Text>
+          ) : null}
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  header: {
+  timelineItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: spacing.lg + spacing.sm,
+  },
+  dotColumn: {
+    width: 20,
     alignItems: 'center',
+    paddingTop: 6,
+  },
+  dot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.bg,
+  },
+  dotToday: {
+    borderColor: colors.primaryContainer,
+  },
+  contentColumn: {
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  dateLabel: {
+    fontSize: typography.labelSm,
+    color: colors.textMuted,
+    fontWeight: '600',
+    letterSpacing: 2,
+    marginBottom: spacing.sm,
+    opacity: 0.6,
+  },
+  dateLabelToday: {
+    color: colors.primary,
+    opacity: 1,
+  },
+  card: {
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(61, 74, 57, 0.05)',
+  },
+  title: {
+    fontSize: typography.headlineMd,
+    fontWeight: '500',
+    color: colors.text,
+    letterSpacing: -0.5,
     marginBottom: spacing.sm,
   },
-  date: {
-    fontSize: typography.sm,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  timeAgo: {
-    fontSize: typography.xs,
-    color: colors.textMuted,
-  },
-  preview: {
+  body: {
     fontSize: typography.base,
-    color: colors.text,
-    lineHeight: 22,
+    color: colors.textSecondary,
+    lineHeight: 24,
   },
 });

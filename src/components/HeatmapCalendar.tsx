@@ -1,131 +1,311 @@
-// ─── FlowNote Streak — Heatmap Calendar Component ────────────────────
+// ─── FlowNote Streak — Monthly Consistency Calendar ────────────────────
+//
+// Redesigned to match reference: monthly calendar grid view
+// with glowing green cells for active days, labeled S M T W T F S
+// Shows current month with "MONTHLY CONSISTENCY" header
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import dayjs from 'dayjs';
 import { colors, typography, spacing, radius } from '../lib/theme';
 
 interface HeatmapCalendarProps {
   checkinHistory: string[];
-  weeks?: number; // How many weeks to show (default 12)
+  weeks?: number;
 }
 
-export function HeatmapCalendar({ checkinHistory, weeks = 12 }: HeatmapCalendarProps) {
+const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const today = dayjs();
   const historySet = new Set(checkinHistory);
+  const monthName = today.format('MMMM');
+  const year = today.format('YYYY');
 
-  // Build grid: rows = days of week (0-6), columns = weeks
-  const totalDays = weeks * 7;
-  const startDate = today.subtract(totalDays - 1, 'day');
+  const renderMonthGrid = (monthOffset: number) => {
+    const targetMonth = dayjs().add(monthOffset, 'month');
+    const mName = targetMonth.format('MMMM');
+    const mYear = targetMonth.format('YYYY');
 
-  // Generate days grouped by week
-  const weeksData: string[][] = [];
-  let currentWeek: string[] = [];
+    const daysInMonth = targetMonth.daysInMonth();
+    const firstDayOfMonth = targetMonth.startOf('month').day();
 
-  for (let i = 0; i < totalDays; i++) {
-    const date = startDate.add(i, 'day');
-    currentWeek.push(date.format('YYYY-MM-DD'));
+    const cells: Array<{
+      day: number | null;
+      dateStr: string | null;
+      isActive: boolean;
+      isToday: boolean;
+      isFuture: boolean;
+    }> = [];
 
-    if (currentWeek.length === 7) {
-      weeksData.push(currentWeek);
-      currentWeek = [];
+    // Empty cells before first day
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      cells.push({ day: null, dateStr: null, isActive: false, isToday: false, isFuture: false });
     }
-  }
-  if (currentWeek.length > 0) {
-    weeksData.push(currentWeek);
-  }
 
-  const dayLabels = ['M', '', 'W', '', 'F', '', ''];
+    // Day cells
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = targetMonth.startOf('month').add(d - 1, 'day');
+      const dateStr = date.format('YYYY-MM-DD');
+      cells.push({
+        day: d,
+        dateStr,
+        isActive: historySet.has(dateStr),
+        isToday: dateStr === dayjs().format('YYYY-MM-DD'),
+        isFuture: date.isAfter(dayjs(), 'day'),
+      });
+    }
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Activity</Text>
-      <View style={styles.grid}>
-        {/* Day labels column */}
-        <View style={styles.dayLabels}>
-          {dayLabels.map((label, i) => (
-            <View key={i} style={styles.dayLabelCell}>
-              <Text style={styles.dayLabelText}>{label}</Text>
+    // Pad to complete last row
+    while (cells.length % 7 !== 0) {
+      cells.push({ day: null, dateStr: null, isActive: false, isToday: false, isFuture: false });
+    }
+
+    // Split into weeks
+    const weeksList: typeof cells[] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weeksList.push(cells.slice(i, i + 7));
+    }
+
+    return (
+      <View key={monthOffset} style={styles.monthSection}>
+        {/* Month Subheader (only shown in expanded mode or for previous months) */}
+        {monthOffset !== 0 && (
+          <View style={styles.monthSubheader}>
+            <Text style={styles.monthSubheaderText}>{mName} {mYear}</Text>
+          </View>
+        )}
+
+        {/* Day headers */}
+        <View style={styles.dayHeaderRow}>
+          {DAY_HEADERS.map((label, i) => (
+            <View key={i} style={styles.dayHeaderCell}>
+              <Text style={styles.dayHeaderText}>{label}</Text>
             </View>
           ))}
         </View>
 
-        {/* Weeks columns */}
-        {weeksData.map((week, wi) => (
-          <View key={wi} style={styles.weekColumn}>
-            {week.map((dateStr, di) => {
-              const isActive = historySet.has(dateStr);
-              const isToday = dateStr === today.format('YYYY-MM-DD');
-              const isFuture = dayjs(dateStr).isAfter(today);
-
-              return (
-                <View
-                  key={di}
-                  style={[
-                    styles.cell,
-                    isActive && styles.cellActive,
-                    isToday && styles.cellToday,
-                    isFuture && styles.cellFuture,
-                  ]}
-                />
-              );
-            })}
+        {/* Calendar grid */}
+        {weeksList.map((week, wi) => (
+          <View key={wi} style={styles.weekRow}>
+            {week.map((cell, ci) => (
+              <View key={ci} style={styles.cellWrapper}>
+                {cell.day !== null ? (
+                  <View
+                    style={[
+                      styles.cell,
+                      cell.isActive && styles.cellActive,
+                      cell.isToday && !cell.isActive && styles.cellToday,
+                      cell.isFuture && !cell.isActive && styles.cellFuture,
+                      !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellMissed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cellText,
+                        cell.isActive && styles.cellTextActive,
+                        cell.isToday && styles.cellTextToday,
+                        cell.isFuture && styles.cellTextFuture,
+                      ]}
+                    >
+                      {cell.day}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.cellEmpty} />
+                )}
+              </View>
+            ))}
           </View>
         ))}
       </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleColumn}>
+            <Text style={styles.titleText}>MONTHLY</Text>
+            <Text style={styles.titleText}>CONSISTENCY</Text>
+          </View>
+          <View style={styles.monthColumn}>
+            <Text style={styles.monthText}>{monthName}</Text>
+            <Text style={styles.yearText}>{year}</Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.expandButton} onPress={() => setIsExpanded(!isExpanded)}>
+          <Text style={styles.expandButtonText}>
+            {isExpanded ? 'COLLAPSE' : 'EXPAND'}{'  '}
+            <Text style={styles.arrowIcon}>{isExpanded ? '↙' : '↗'}</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Render Current Month Grid */}
+      {renderMonthGrid(0)}
+
+      {/* Render Past 2 Months if Expanded */}
+      {isExpanded && renderMonthGrid(-1)}
+      {isExpanded && renderMonthGrid(-2)}
     </View>
   );
 }
 
-const CELL_SIZE = 14;
-const CELL_GAP = 3;
+const CELL_SIZE = 36;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSelf,
   },
-  title: {
-    fontSize: typography.sm,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: spacing.sm,
-  },
-  grid: {
+  headerRow: {
     flexDirection: 'row',
-    gap: CELL_GAP,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
-  dayLabels: {
-    gap: CELL_GAP,
-    marginRight: spacing.xs,
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  dayLabelCell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
+  titleColumn: {
+    flexDirection: 'column',
+  },
+  titleText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: 1.5,
+    lineHeight: 15,
+  },
+  monthColumn: {
+    flexDirection: 'column',
     justifyContent: 'center',
   },
-  dayLabelText: {
-    fontSize: 9,
+  monthText: {
+    fontSize: 11,
     color: colors.textMuted,
+    fontWeight: '500',
+    lineHeight: 14,
   },
-  weekColumn: {
-    gap: CELL_GAP,
+  yearText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '500',
+    lineHeight: 14,
+  },
+  expandButton: {
+    backgroundColor: 'rgba(85, 234, 77, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(85, 234, 77, 0.25)',
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expandButtonText: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  arrowIcon: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  monthSection: {
+    marginBottom: spacing.md,
+  },
+  monthSubheader: {
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  monthSubheaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  dayHeaderRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+  },
+  dayHeaderCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dayHeaderText: {
+    fontSize: 10,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    fontWeight: '500',
+  },
+  weekRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.xs + 2,
+  },
+  cellWrapper: {
+    flex: 1,
+    alignItems: 'center',
   },
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: 3,
-    backgroundColor: colors.heatmap0,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cellActive: {
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
+    elevation: 4,
   },
   cellToday: {
-    borderWidth: 1,
-    borderColor: colors.cream,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: 'transparent',
   },
   cellFuture: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  cellMissed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  cellEmpty: {
+    width: CELL_SIZE,
+    height: CELL_SIZE,
+  },
+  cellText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#3E3E4E', // Muted dark grey for missed/future days
+  },
+  cellTextActive: {
+    color: '#00000E', // Dark text on active green
+    fontWeight: '700',
+  },
+  cellTextToday: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  cellTextFuture: {
+    color: '#2E2E3E',
   },
 });
