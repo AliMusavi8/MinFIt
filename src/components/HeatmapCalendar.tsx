@@ -5,7 +5,7 @@
 // Shows current month with "MONTHLY CONSISTENCY" header
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation } from 'react-native';
 import dayjs from 'dayjs';
 import { colors, typography, spacing, radius } from '../lib/theme';
 
@@ -22,6 +22,11 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
   const historySet = new Set(checkinHistory);
   const monthName = today.format('MMMM');
   const year = today.format('YYYY');
+
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+  };
 
   const renderMonthGrid = (monthOffset: number) => {
     const targetMonth = dayjs().add(monthOffset, 'month');
@@ -105,8 +110,9 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
                       style={[
                         styles.cellText,
                         cell.isActive && styles.cellTextActive,
-                        cell.isToday && styles.cellTextToday,
-                        cell.isFuture && styles.cellTextFuture,
+                        cell.isToday && !cell.isActive && styles.cellTextToday,
+                        cell.isFuture && !cell.isActive && styles.cellTextFuture,
+                        !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
                       ]}
                     >
                       {cell.day}
@@ -124,9 +130,9 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingVertical: isExpanded ? spacing.lg : 14 }]}>
       {/* Header */}
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { marginBottom: isExpanded ? spacing.lg : 0 }]}>
         <View style={styles.titleContainer}>
           <View style={styles.titleColumn}>
             <Text style={styles.titleText}>MONTHLY</Text>
@@ -137,7 +143,7 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
             <Text style={styles.yearText}>{year}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.expandButton} onPress={() => setIsExpanded(!isExpanded)}>
+        <TouchableOpacity style={styles.expandButton} onPress={toggleExpanded}>
           <Text style={styles.expandButtonText}>
             {isExpanded ? 'COLLAPSE' : 'EXPAND'}{'  '}
             <Text style={styles.arrowIcon}>{isExpanded ? '↙' : '↗'}</Text>
@@ -145,12 +151,8 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
         </TouchableOpacity>
       </View>
 
-      {/* Render Current Month Grid */}
-      {renderMonthGrid(0)}
-
-      {/* Render Past 2 Months if Expanded */}
-      {isExpanded && renderMonthGrid(-1)}
-      {isExpanded && renderMonthGrid(-2)}
+      {/* Render Current Month Grid if Expanded */}
+      {isExpanded && renderMonthGrid(0)}
     </View>
   );
 }
@@ -286,7 +288,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   cellMissed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: colors.danger,
+    shadowColor: colors.danger,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
+    elevation: 4,
   },
   cellEmpty: {
     width: CELL_SIZE,
@@ -295,7 +302,7 @@ const styles = StyleSheet.create({
   cellText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#3E3E4E', // Muted dark grey for missed/future days
+    color: '#3E3E4E', // Muted dark grey for future days
   },
   cellTextActive: {
     color: '#00000E', // Dark text on active green
@@ -307,5 +314,9 @@ const styles = StyleSheet.create({
   },
   cellTextFuture: {
     color: '#2E2E3E',
+  },
+  cellTextMissed: {
+    color: '#ffffff', // High contrast white text on crimson red
+    fontWeight: '700',
   },
 });

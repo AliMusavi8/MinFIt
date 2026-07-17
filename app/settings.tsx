@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   dangerSectionTitle: {
     fontSize: typography.labelSm,
-    color: 'rgba(255, 180, 171, 0.6)',
+    color: 'rgba(220, 20, 60, 0.6)',
     fontWeight: '600',
     letterSpacing: 1.5,
     marginBottom: spacing.md,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSubtle,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255, 180, 171, 0.1)',
+    borderColor: 'rgba(220, 20, 60, 0.15)',
     padding: spacing.md + 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   dangerTitle: {
     fontSize: typography.base,
-    color: 'rgba(255, 180, 171, 0.8)',
+    color: colors.danger,
     fontWeight: '500',
   },
   dangerSubtitle: {
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   },
   dangerIcon: {
     fontSize: 20,
-    color: 'rgba(255, 180, 171, 0.6)',
+    color: 'rgba(220, 20, 60, 0.7)',
   },
 
   // Version badge

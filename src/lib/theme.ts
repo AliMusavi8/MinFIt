@@ -45,9 +45,9 @@ export const colors = {
   secondaryContainer: '#414a30',
 
   // Semantic
-  danger: '#ffb4ab',
+  danger: '#dc143c',
   dangerContainer: '#93000a',
-  dangerMuted: 'rgba(255, 180, 171, 0.15)',
+  dangerMuted: 'rgba(220, 20, 60, 0.15)',
   warning: '#FFB84D',
   success: '#55ea4d',
 
