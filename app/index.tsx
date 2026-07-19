@@ -1,10 +1,9 @@
 // ─── FlowNote Streak — Home Screen ────────────────────
 //
-// Redesigned to match reference: "Fitness Tracking" branded header,
 // central glowing orb, streak card with weekly circles,
 // best streak badge, monthly consistency calendar.
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -20,14 +19,24 @@ import { HeatmapCalendar } from '../src/components/HeatmapCalendar';
 
 export default function HomeScreen() {
   const { streak, liveStreak, isCheckedInToday, checkin } = useStreak();
+  const scrollRef = useRef<ScrollView>(null);
+  const calendarY = useRef(0);
 
   const handleCheckin = async () => {
     await checkin();
   };
 
+  const handleCalendarCollapse = () => {
+    // Scroll to keep the calendar card visible after collapsing
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: calendarY.current - 20, animated: true });
+    }, 50);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -70,8 +79,14 @@ export default function HomeScreen() {
         </View>
 
         {/* Monthly Consistency Calendar */}
-        <View style={styles.section}>
-          <HeatmapCalendar checkinHistory={streak.checkinHistory} />
+        <View
+          style={styles.section}
+          onLayout={(e) => { calendarY.current = e.nativeEvent.layout.y; }}
+        >
+          <HeatmapCalendar
+            checkinHistory={streak.checkinHistory}
+            onCollapse={handleCalendarCollapse}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

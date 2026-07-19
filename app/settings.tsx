@@ -67,27 +67,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Bento Grid Stats */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>TOTAL{'\n'}NOTES</Text>
-            <Text style={styles.statValue}>{entries.length}</Text>
-            <View style={styles.statIconBg}>
-              <Text style={styles.statIcon}>☰</Text>
-            </View>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>CURRENT{'\n'}STREAK</Text>
-            <View style={styles.statValueRow}>
-              <Text style={styles.statValue}>{streak.currentStreak}</Text>
-              <Text style={styles.statUnit}> days</Text>
-            </View>
-            <View style={styles.statIconBg}>
-              <Text style={styles.statIconStar}>✦</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Application Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>APPLICATION</Text>
@@ -253,59 +232,6 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     color: colors.textMuted,
-  },
-
-  // Stats grid
-  statsGrid: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    height: 128,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.borderSelf,
-    overflow: 'hidden',
-  },
-  statLabel: {
-    fontSize: typography.labelSm,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  statValue: {
-    fontSize: typography.headlineLg,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  statValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  statUnit: {
-    fontSize: typography.labelMd,
-    color: colors.textSecondary,
-  },
-  statIconBg: {
-    position: 'absolute',
-    right: -spacing.sm,
-    bottom: -spacing.sm,
-    opacity: 0.1,
-  },
-  statIcon: {
-    fontSize: 48,
-    color: colors.text,
-  },
-  statIconStar: {
-    fontSize: 48,
-    color: colors.primary,
   },
 
   // Sections

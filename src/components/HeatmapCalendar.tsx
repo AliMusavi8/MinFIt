@@ -12,11 +12,12 @@ import { colors, typography, spacing, radius } from '../lib/theme';
 interface HeatmapCalendarProps {
   checkinHistory: string[];
   weeks?: number;
+  onCollapse?: () => void;
 }
 
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
+export function HeatmapCalendar({ checkinHistory, onCollapse }: HeatmapCalendarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const today = dayjs();
   const historySet = new Set(checkinHistory);
@@ -25,6 +26,9 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (isExpanded && onCollapse) {
+      onCollapse();
+    }
     setIsExpanded(!isExpanded);
   };
 
@@ -143,8 +147,17 @@ export function HeatmapCalendar({ checkinHistory }: HeatmapCalendarProps) {
             <Text style={styles.yearText}>{year}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.expandButton} onPress={toggleExpanded}>
-          <Text style={styles.expandButtonText}>
+        <TouchableOpacity
+          style={[
+            styles.expandButton,
+            isExpanded && styles.collapseButton,
+          ]}
+          onPress={toggleExpanded}
+        >
+          <Text style={[
+            styles.expandButtonText,
+            isExpanded && styles.collapseButtonText,
+          ]}>
             {isExpanded ? 'COLLAPSE' : 'EXPAND'}{'  '}
             <Text style={styles.arrowIcon}>{isExpanded ? '↙' : '↗'}</Text>
           </Text>
@@ -210,17 +223,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(85, 234, 77, 0.25)',
     borderRadius: radius.md,
-    paddingHorizontal: 12,
+    width: 100,
     paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  collapseButton: {
+    backgroundColor: 'rgba(220, 20, 60, 0.06)',
+    borderColor: 'rgba(220, 20, 60, 0.3)',
   },
   expandButtonText: {
     color: colors.primary,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  collapseButtonText: {
+    color: colors.danger,
   },
   arrowIcon: {
     fontSize: 11,

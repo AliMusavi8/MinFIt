@@ -26,50 +26,43 @@ const INNER_SIZE = 200;
 export function CheckinButton({ isCheckedIn, onPress, streakCount }: CheckinButtonProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Subtle breathing pulse when not checked in
+  // Smooth continuous breathing pulse
   useEffect(() => {
-    if (!isCheckedIn) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.04,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulse.start();
-      return () => { pulse.stop(); };
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [isCheckedIn, pulseAnim]);
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.06,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
 
   return (
     <View style={styles.wrapper}>
 
       {/* Main orb */}
-      <Animated.View
-        style={[
-          styles.orbOuter,
-          !isCheckedIn && { transform: [{ scale: pulseAnim }] },
-        ]}
+      <TouchableOpacity
+        onPress={isCheckedIn ? undefined : onPress}
+        activeOpacity={isCheckedIn ? 1 : 0.85}
+        disabled={isCheckedIn}
       >
-        <TouchableOpacity
+        <Animated.View
           style={[
             styles.orb,
             isCheckedIn ? styles.orbDone : styles.orbActive,
+            { transform: [{ scale: pulseAnim }] },
           ]}
-          onPress={isCheckedIn ? undefined : onPress}
-          activeOpacity={isCheckedIn ? 1 : 0.85}
-          disabled={isCheckedIn}
         >
           {isCheckedIn ? (
             <Text style={styles.checkIcon}>✓</Text>
@@ -81,8 +74,8 @@ export function CheckinButton({ isCheckedIn, onPress, streakCount }: CheckinButt
               </Text>
             </>
           )}
-        </TouchableOpacity>
-      </Animated.View>
+        </Animated.View>
+      </TouchableOpacity>
 
       {/* Tooltip */}
       <Text style={styles.tooltip}>
@@ -103,9 +96,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  orbOuter: {
-    borderRadius: INNER_SIZE / 2,
-  },
   orb: {
     width: INNER_SIZE,
     height: INNER_SIZE,
