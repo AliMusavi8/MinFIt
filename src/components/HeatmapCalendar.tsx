@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Monthly Consistency Calendar ────────────────────
+// ─── MinFit — Monthly Consistency Calendar ─────────────────────────────
 //
 // Redesigned to match reference: monthly calendar grid view
 // with glowing green cells for active days, labeled S M T W T F S
@@ -224,8 +224,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   titleText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
     fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: 1.5,
@@ -239,12 +238,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     fontWeight: '500',
+    fontFamily: fonts.medium,
     lineHeight: 14,
   },
   yearText: {
     fontSize: 11,
     color: colors.textMuted,
     fontWeight: '500',
+    fontFamily: fonts.medium,
     lineHeight: 14,
   },
   expandButton: {
@@ -275,6 +276,7 @@ const styles = StyleSheet.create({
   arrowIcon: {
     fontSize: 11,
     fontWeight: 'bold',
+    fontFamily: fonts.bold,
   },
   monthSection: {
     marginBottom: spacing.md,
@@ -289,6 +291,7 @@ const styles = StyleSheet.create({
   monthSubheaderText: {
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.5,
   },
@@ -305,6 +308,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: 'uppercase',
     fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   weekRow: {
     flexDirection: 'row',
@@ -355,6 +359,7 @@ const styles = StyleSheet.create({
   cellText: {
     fontSize: 11,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: '#3E3E4E', // Muted dark grey for future days
   },
   cellTextActive: {

@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Home Screen ────────────────────
+// ─── MinFit — Home Screen ──────────────────────────────
 //
 // central glowing orb, streak card with weekly circles,
 // best streak badge, monthly consistency calendar.
@@ -16,6 +16,7 @@ import { useStreak } from '../src/hooks/useStreak';
 import { StreakRing } from '../src/components/StreakRing';
 import { CheckinButton } from '../src/components/CheckinButton';
 import { HeatmapCalendar } from '../src/components/HeatmapCalendar';
+import { ProfileAvatar } from '../src/components/ProfileAvatar';
 
 export default function HomeScreen() {
   const { streak, liveStreak, isCheckedInToday, checkin } = useStreak();
@@ -58,15 +59,16 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — branded "Fitness Tracking" */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerAccent}>Fitness</Text>
-            <Text style={styles.headerTitle}> Tracking</Text>
+            <View style={styles.brandRow}>
+              <Text style={styles.brandMin}>Min</Text>
+              <Text style={styles.brandFit}>Fit</Text>
+            </View>
+            <Text style={styles.tagline}>Minimal Fitness Tracking</Text>
           </View>
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>●</Text>
-          </View>
+          <ProfileAvatar />
         </View>
 
         {/* Check-in completed banner */}
@@ -127,42 +129,34 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    height: 72,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
   },
   headerLeft: {
+    gap: 2,
+  },
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerAccent: {
+  brandMin: {
     fontSize: typography.headlineMd,
-    fontWeight: '600',
-    fontFamily: fonts.semibold,
-    color: colors.primary,
-    letterSpacing: -0.5,
-  },
-  headerTitle: {
-    fontSize: typography.headlineMd,
-    fontWeight: '600',
     fontFamily: fonts.semibold,
     color: colors.text,
     letterSpacing: -0.5,
   },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceContainerHighest,
+  brandFit: {
+    fontSize: typography.headlineMd,
+    fontFamily: fonts.semibold,
+    color: colors.primary,
+    letterSpacing: -0.5,
   },
-  avatarText: {
-    fontSize: 16,
+  tagline: {
+    fontSize: typography.xs,
     color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
 
   // Check-in banner

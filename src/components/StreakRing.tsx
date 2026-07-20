@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Streak Card Component ────────────────────
+// ─── MinFit — Streak Card Component ─────────────────────────────
 //
 // Redesigned to match the reference design:
 // - Glass panel card with streak count + day circles
@@ -170,9 +170,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   streakLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.text,
-    fontWeight: '700',
     fontFamily: fonts.bold,
     letterSpacing: 1.5,
     marginBottom: 4,
@@ -233,12 +232,14 @@ const styles = StyleSheet.create({
   checkmark: {
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.bg,
   },
   dayLabel: {
     fontSize: 10,
     color: colors.textMuted,
     fontWeight: '500',
+    fontFamily: fonts.medium,
     textTransform: 'uppercase',
   },
   dayLabelToday: {
@@ -260,9 +261,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bestLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.primary,
-    fontWeight: '700',
     fontFamily: fonts.bold,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
@@ -271,6 +271,7 @@ const styles = StyleSheet.create({
     fontSize: typography.headlineMd,
     color: '#1b5e20', // Darker forest green matching the reference design
     fontWeight: '500',
+    fontFamily: fonts.medium,
     letterSpacing: -0.5,
   },
   bestBadge: {

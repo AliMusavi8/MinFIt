@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Streak Hook ────────────────────
+// ─── MinFit — Streak Hook ───────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react';
 import { StreakData } from '../types';

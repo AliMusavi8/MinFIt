@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Settings Screen ────────────────────
+// ─── MinFit — Settings Screen ─────────────────────────────
 //
 // Redesigned to match reference: branded header, bento-grid stat cards,
 // Application settings with toggle switches, Privacy & Export section,
@@ -6,31 +6,49 @@
 
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Alert, ScrollView, Switch,
+  View, Text, StyleSheet, Pressable, Alert, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography, spacing, radius } from '../src/lib/theme';
-import { useStreak } from '../src/hooks/useStreak';
-import { useJournal } from '../src/hooks/useJournal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, fonts, typography, spacing, radius } from '../src/lib/theme';
+import * as Updates from 'expo-updates';
+import { clearMinFitData } from '../src/lib/storage';
+import { ProfileAvatar } from '../src/components/ProfileAvatar';
 
 export default function SettingsScreen() {
-  const { streak, reset } = useStreak();
-  const { entries } = useJournal();
   const [clearing, setClearing] = useState(false);
-  const [reminderEnabled, setReminderEnabled] = useState(true);
-  const [syncEnabled, setSyncEnabled] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
 
-  const handleResetStreak = () => {
-    Alert.alert(
-      'Reset Streak',
-      'This will reset your current streak to 0. Your history will be cleared. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Reset', style: 'destructive', onPress: async () => { await reset(); } },
-      ]
-    );
+  const handleCheckForUpdates = async () => {
+    if (!Updates.isEnabled) {
+      Alert.alert(
+        'Updates unavailable',
+        'Update checks are available in a published MinFit build, not Expo Go or a development build.'
+      );
+      return;
+    }
+
+    setCheckingForUpdates(true);
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (!update.isAvailable) {
+        Alert.alert('You are up to date', 'You already have the latest version of MinFit.');
+        return;
+      }
+
+      await Updates.fetchUpdateAsync();
+      Alert.alert(
+        'Update downloaded',
+        'Restart MinFit now to use the latest version?',
+        [
+          { text: 'Later', style: 'cancel' },
+          { text: 'Restart now', onPress: () => { void Updates.reloadAsync(); } },
+        ]
+      );
+    } catch {
+      Alert.alert('Could not check for updates', 'Check your connection and try again.');
+    } finally {
+      setCheckingForUpdates(false);
+    }
   };
 
   const handleClearAll = () => {
@@ -44,9 +62,9 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             setClearing(true);
-            await AsyncStorage.clear();
+            await clearMinFitData();
             setClearing(false);
-            Alert.alert('Done', 'All data has been cleared. Restart the app to start fresh.');
+            Alert.alert('Done', 'Your MinFit data has been cleared.');
           },
         },
       ]
@@ -58,63 +76,50 @@ export default function SettingsScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.menuIcon}>☰</Text>
-            <Text style={styles.title}>Settings</Text>
+          <View style={styles.brandRow}>
+            <Text style={styles.brandMin}>Min</Text>
+            <Text style={styles.brandFit}>Fit</Text>
           </View>
-          <View style={styles.avatarSmall}>
-            <Text style={styles.avatarText}>●</Text>
-          </View>
+          <ProfileAvatar />
         </View>
 
         {/* Application Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>APPLICATION</Text>
           <View style={styles.card}>
-            <SettingRow
-              title="Daily Check-in Reminder"
-              subtitle="Receive a nudge to log your progress"
-              value={reminderEnabled}
-              onToggle={setReminderEnabled}
-            />
-            <View style={styles.divider} />
-            <SettingRow
-              title="Cloud Data Sync"
-              subtitle="Sync logs across all your devices"
-              value={syncEnabled}
-              onToggle={setSyncEnabled}
-            />
-            <View style={styles.divider} />
             <View style={styles.settingRow}>
-              <View>
-                <Text style={styles.settingTitle}>Theme</Text>
-                <Text style={styles.settingSubtitle}>Currently: Dark Void</Text>
+              <View style={styles.rowContent}>
+                <Text style={styles.settingTitle}>Local data storage</Text>
+                <Text style={styles.settingSubtitle}>Your streaks and notes are saved on this device</Text>
               </View>
-              <Pressable>
-                <Text style={styles.changeLink}>Change</Text>
-              </Pressable>
             </View>
+            <View style={styles.divider} />
+            <Pressable
+              style={styles.settingRow}
+              onPress={handleCheckForUpdates}
+              disabled={checkingForUpdates}
+            >
+              <View style={styles.rowContent}>
+                <Text style={styles.settingTitle}>Check for updates</Text>
+                <Text style={styles.settingSubtitle}>
+                  {checkingForUpdates ? 'Checking for a new version…' : 'Download the latest available version'}
+                </Text>
+              </View>
+              <Text style={styles.actionIcon}>↻</Text>
+            </Pressable>
           </View>
         </View>
 
-        {/* Privacy & Export */}
+        {/* Privacy */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PRIVACY & EXPORT</Text>
+          <Text style={styles.sectionTitle}>YOUR DATA</Text>
           <View style={styles.card}>
-            <Pressable style={styles.settingRow}>
-              <View>
-                <Text style={styles.settingTitle}>Export Journal</Text>
-                <Text style={styles.settingSubtitle}>Download all data as CSV or PDF</Text>
+            <View style={styles.settingRow}>
+              <View style={styles.rowContent}>
+                <Text style={styles.settingTitle}>Private by default</Text>
+                <Text style={styles.settingSubtitle}>MinFit does not currently sync data to a server</Text>
               </View>
-              <Text style={styles.actionIcon}>↓</Text>
-            </Pressable>
-            <View style={styles.divider} />
-            <SettingRow
-              title="Biometric Lock"
-              subtitle="Require FaceID or Fingerprint"
-              value={biometricEnabled}
-              onToggle={setBiometricEnabled}
-            />
+            </View>
           </View>
         </View>
 
@@ -142,7 +147,7 @@ export default function SettingsScreen() {
         <View style={styles.versionContainer}>
           <View style={styles.versionBadge}>
             <View style={styles.versionDot} />
-            <Text style={styles.versionText}>FlowNote Streak v1.0.0</Text>
+            <Text style={styles.versionText}>MinFit v0.0.1</Text>
           </View>
         </View>
       </ScrollView>
@@ -150,37 +155,6 @@ export default function SettingsScreen() {
   );
 }
 
-// Toggle setting row component
-function SettingRow({
-  title,
-  subtitle,
-  value,
-  onToggle,
-}: {
-  title: string;
-  subtitle: string;
-  value: boolean;
-  onToggle: (val: boolean) => void;
-}) {
-  return (
-    <View style={styles.settingRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.settingTitle}>{title}</Text>
-        <Text style={styles.settingSubtitle}>{subtitle}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onToggle}
-        trackColor={{
-          false: colors.surfaceContainerHighest,
-          true: 'rgba(50, 205, 50, 0.2)',
-        }}
-        thumbColor={value ? colors.primary : colors.textMuted}
-        ios_backgroundColor={colors.surfaceContainerHighest}
-      />
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -198,40 +172,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    height: 64,
+    height: 72,
   },
-  headerLeft: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
   },
-  menuIcon: {
-    fontSize: 20,
-    color: colors.primary,
-  },
-  title: {
+  brandMin: {
     fontSize: typography.headlineMd,
-    fontWeight: '500',
-    color: colors.primary,
+    fontFamily: fonts.semibold,
+    color: colors.text,
     letterSpacing: -0.5,
   },
-  avatarSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceContainerHighest,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(61, 74, 57, 0.2)',
-  },
-  avatarText: {
-    fontSize: 14,
-    color: colors.textMuted,
+  brandFit: {
+    fontSize: typography.headlineMd,
+    fontFamily: fonts.semibold,
+    color: colors.primary,
+    letterSpacing: -0.5,
   },
 
   // Sections
@@ -243,6 +203,7 @@ const styles = StyleSheet.create({
     fontSize: typography.labelSm,
     color: colors.textSecondary,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     letterSpacing: 1.5,
     marginBottom: spacing.md,
     marginLeft: 2,
@@ -251,6 +212,7 @@ const styles = StyleSheet.create({
     fontSize: typography.labelSm,
     color: 'rgba(220, 20, 60, 0.6)',
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     letterSpacing: 1.5,
     marginBottom: spacing.md,
     marginLeft: 2,
@@ -276,24 +238,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md + 4,
   },
+  rowContent: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
   settingTitle: {
     fontSize: typography.base,
     color: colors.text,
     fontWeight: '400',
+    fontFamily: fonts.regular,
   },
   settingSubtitle: {
     fontSize: typography.xs,
     color: 'rgba(188, 203, 180, 0.7)',
     marginTop: 2,
-  },
-  changeLink: {
-    fontSize: typography.labelMd,
-    color: colors.primary,
-    fontWeight: '500',
+    fontFamily: fonts.regular,
   },
   actionIcon: {
     fontSize: 20,
     color: colors.textSecondary,
+    fontFamily: fonts.regular,
   },
 
   // Danger zone
@@ -311,15 +275,18 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     color: colors.danger,
     fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   dangerSubtitle: {
     fontSize: typography.xs,
     color: 'rgba(188, 203, 180, 0.5)',
     marginTop: 2,
+    fontFamily: fonts.regular,
   },
   dangerIcon: {
     fontSize: 20,
     color: 'rgba(220, 20, 60, 0.7)',
+    fontFamily: fonts.regular,
   },
 
   // Version badge
@@ -348,5 +315,6 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: typography.labelSm,
     color: colors.textSecondary,
+    fontFamily: fonts.regular,
   },
 });

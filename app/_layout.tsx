@@ -1,8 +1,8 @@
-// ─── FlowNote Streak — Root Layout ────────────────────
+// ─── MinFit — Root Layout ─────────────────────────────
 // Redesigned with inline vector SVG bottom navigation
 // matching the reference design (home, journal, settings icons)
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Tabs } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
@@ -16,9 +16,11 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Animated,
+  Easing,
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { useFonts, Saira_400Regular, Saira_500Medium, Saira_600SemiBold, Saira_700Bold } from '@expo-google-fonts/saira';
+import { useFonts } from 'expo-font';
 import { colors, fonts, spacing } from '../src/lib/theme';
 
 let defaultFontConfigured = false;
@@ -125,6 +127,80 @@ function TabIcon({ name, focused, color }: { name: string; focused: boolean; col
   return <SettingsIcon color={color} />;
 }
 
+interface TabButtonProps {
+  focused: boolean;
+  label: string;
+  routeName: string;
+  accessibilityLabel?: string;
+  onPress: () => void;
+  onLongPress: () => void;
+}
+
+function TabButton({
+  focused,
+  label,
+  routeName,
+  accessibilityLabel,
+  onPress,
+  onLongPress,
+}: TabButtonProps) {
+  const openAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(openAnim, {
+      toValue: focused ? 1 : 0,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [focused, openAnim]);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={focused ? { selected: true } : {}}
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={({ pressed }) => [
+        styles.tabItem,
+        focused ? styles.tabItemActive : styles.tabItemInactive,
+        pressed && styles.tabItemPressed,
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.activePill,
+          {
+            opacity: openAnim,
+            transform: [{ scaleX: openAnim.interpolate({ inputRange: [0, 1], outputRange: [0.34, 1] }) }],
+          },
+        ]}
+      />
+      <View style={styles.tabContent}>
+        <TabIcon
+          name={routeName}
+          focused={focused}
+          color={focused ? colors.primary : colors.textMuted}
+        />
+        {focused && (
+          <Animated.Text
+            style={[
+              styles.tabLabel,
+              {
+                opacity: openAnim,
+                transform: [{ translateX: openAnim.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }],
+              },
+            ]}
+          >
+            {label}
+          </Animated.Text>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
 function AppTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
@@ -133,7 +209,6 @@ function AppTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps
           const focused = state.index === index;
           const { options } = descriptors[route.key];
           const label = tabLabels[route.name] ?? options.title ?? route.name;
-          const iconColor = focused ? colors.primary : colors.textMuted;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -149,22 +224,15 @@ function AppTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps
           };
 
           return (
-            <Pressable
+            <TabButton
               key={route.key}
-              accessibilityRole="button"
-              accessibilityState={focused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
+              focused={focused}
+              label={label}
+              routeName={route.name}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
               onPress={onPress}
               onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
-              style={({ pressed }) => [
-                styles.tabItem,
-                focused ? styles.tabItemActive : styles.tabItemInactive,
-                pressed && styles.tabItemPressed,
-              ]}
-            >
-              <TabIcon name={route.name} focused={focused} color={iconColor} />
-              {focused && <Text style={styles.tabLabel}>{label}</Text>}
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -174,10 +242,9 @@ function AppTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    Saira_400Regular,
-    Saira_500Medium,
-    Saira_600SemiBold,
-    Saira_700Bold,
+    'Nippo-Regular': require('../assets/fonts/Nippo/Fonts/OTF/Nippo-Regular.otf'),
+    'Nippo-Medium': require('../assets/fonts/Nippo/Fonts/OTF/Nippo-Medium.otf'),
+    'Nippo-Bold': require('../assets/fonts/Nippo/Fonts/OTF/Nippo-Bold.otf'),
   });
 
   if (!fontsLoaded) return null;
@@ -197,6 +264,8 @@ export default function RootLayout() {
         tabBar={(props) => <AppTabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          animation: 'fade',
+          sceneStyle: { backgroundColor: colors.bg },
         }}
       >
         <Tabs.Screen
@@ -243,19 +312,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: spacing.sm,
+    overflow: 'hidden',
   },
   tabItemActive: {
     flex: 1.65,
-    backgroundColor: 'rgba(85, 234, 77, 0.13)',
-    borderWidth: 1,
-    borderColor: 'rgba(85, 234, 77, 0.25)',
   },
   tabItemInactive: {
     flex: 1,
   },
   tabItemPressed: {
     opacity: 0.75,
+  },
+  activePill: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 26,
+    backgroundColor: 'rgba(85, 234, 77, 0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(85, 234, 77, 0.25)',
+  },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    zIndex: 1,
   },
   tabLabel: {
     color: colors.primary,

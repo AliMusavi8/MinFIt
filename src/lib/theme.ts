@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Design System ────────────────────
+// ─── MinFit — Design System ─────────────────────────────
 // Material 3 inspired dark theme with green primary accent
 // Aligned with reference design specifications
 
@@ -105,8 +105,8 @@ export const typography = {
 } as const;
 
 export const fonts = {
-  regular: 'Saira_400Regular',
-  medium: 'Saira_500Medium',
-  semibold: 'Saira_600SemiBold',
-  bold: 'Saira_700Bold',
+  regular: 'Nippo-Regular',
+  medium: 'Nippo-Medium',
+  semibold: 'Nippo-Medium',
+  bold: 'Nippo-Bold',
 } as const;

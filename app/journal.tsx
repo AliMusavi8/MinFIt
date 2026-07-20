@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Notes Screen ────────────────────
+// ─── MinFit — Notes Screen ─────────────────────────────
 //
 // Redesigned to match reference: "Notes" branded header with
 // search icon + avatar, motivational quote, timeline-style
@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import dayjs from 'dayjs';
-import { colors, typography, spacing, radius } from '../src/lib/theme';
+import { colors, fonts, typography, spacing, radius } from '../src/lib/theme';
 import { useJournal } from '../src/hooks/useJournal';
 import { useStreak } from '../src/hooks/useStreak';
 import { JournalEntry } from '../src/types';
 import { EntryCard } from '../src/components/EntryCard';
 import { EmptyState } from '../src/components/EmptyState';
+import { ProfileAvatar } from '../src/components/ProfileAvatar';
+import { RichTextEditor } from '../src/components/RichTextEditor';
 
 export default function JournalScreen() {
   const { entries, loading, addEntry, updateEntry, deleteEntry, searchEntries } = useJournal();
@@ -44,7 +46,8 @@ export default function JournalScreen() {
 
   const handleSave = async () => {
     const content = editorContent.trim();
-    if (!content) { setIsEditing(false); return; }
+    const plainContent = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    if (!plainContent) { setIsEditing(false); return; }
     if (editingEntry) { await updateEntry(editingEntry.id, content); }
     else { await addEntry(content); }
     setIsEditing(false);
@@ -64,17 +67,15 @@ export default function JournalScreen() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.menuIcon}>☰</Text>
-            <Text style={styles.title}>Notes</Text>
+          <View style={styles.brandRow}>
+            <Text style={styles.brandMin}>Min</Text>
+            <Text style={styles.brandFit}>Fit</Text>
           </View>
           <View style={styles.headerRight}>
             <Pressable onPress={() => setShowSearch(!showSearch)}>
               <Text style={styles.searchIcon}>⌕</Text>
             </Pressable>
-            <View style={styles.avatarSmall}>
-              <Text style={styles.avatarText}>●</Text>
-            </View>
+            <ProfileAvatar />
           </View>
         </View>
 
@@ -174,17 +175,13 @@ export default function JournalScreen() {
                   <Text style={styles.editorSave}>Save</Text>
                 </Pressable>
               </View>
-              <TextInput
-                style={styles.editor}
-                multiline
-                autoFocus
-                placeholder="Write freely..."
-                placeholderTextColor={colors.textMuted}
-                value={editorContent}
-                onChangeText={setEditorContent}
-                textAlignVertical="top"
-                scrollEnabled
-              />
+              {isEditing && (
+                <RichTextEditor
+                  key={editingEntry?.id ?? 'new'}
+                  initialContent={editorContent}
+                  onChange={setEditorContent}
+                />
+              )}
             </SafeAreaView>
           </KeyboardAvoidingView>
         </Modal>
@@ -206,24 +203,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    height: 64,
+    height: 72,
   },
-  headerLeft: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
   },
-  menuIcon: {
-    fontSize: 20,
-    color: colors.textSecondary,
-  },
-  title: {
+  brandMin: {
     fontSize: typography.headlineMd,
-    fontWeight: '700',
+    fontFamily: fonts.semibold,
+    color: colors.text,
+    letterSpacing: -0.5,
+  },
+  brandFit: {
+    fontSize: typography.headlineMd,
+    fontFamily: fonts.semibold,
     color: colors.primary,
     letterSpacing: -0.5,
   },
@@ -235,20 +232,7 @@ const styles = StyleSheet.create({
   searchIcon: {
     fontSize: 22,
     color: colors.textSecondary,
-  },
-  avatarSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceContainerHighest,
-    borderWidth: 1,
-    borderColor: 'rgba(61, 74, 57, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
 
   // Search
@@ -264,6 +248,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     fontSize: typography.base,
     color: colors.text,
+    fontFamily: fonts.regular,
     borderWidth: 1,
     borderColor: colors.borderSelf,
   },
@@ -277,6 +262,7 @@ const styles = StyleSheet.create({
   clearText: {
     fontSize: typography.base,
     color: colors.textSecondary,
+    fontFamily: fonts.regular,
   },
 
   // Quote
@@ -289,6 +275,7 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     color: colors.textMuted,
     fontStyle: 'italic',
+    fontFamily: fonts.regular,
     opacity: 0.6,
   },
 
@@ -329,10 +316,12 @@ const styles = StyleSheet.create({
   streakBadgeIcon: {
     fontSize: 16,
     color: colors.bg,
+    fontFamily: fonts.regular,
   },
   streakBadgeText: {
     fontSize: typography.labelMd,
     fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.bg,
     letterSpacing: 0.5,
   },
@@ -358,6 +347,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.bg,
     fontWeight: '300',
+    fontFamily: fonts.regular,
     marginTop: -2,
   },
 
@@ -381,23 +371,18 @@ const styles = StyleSheet.create({
   editorCancel: {
     fontSize: typography.base,
     color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
   editorDate: {
     fontSize: typography.sm,
     color: colors.textSecondary,
     fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   editorSave: {
     fontSize: typography.base,
     color: colors.primary,
     fontWeight: '600',
-  },
-  editor: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    fontSize: typography.md,
-    color: colors.text,
-    lineHeight: 28,
+    fontFamily: fonts.semibold,
   },
 });

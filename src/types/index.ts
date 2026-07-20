@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Type Definitions ────────────────────
+// ─── MinFit — Type Definitions ──────────────────────────
 
 export interface JournalEntry {
   id: string;

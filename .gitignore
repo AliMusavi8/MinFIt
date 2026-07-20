@@ -5,6 +5,7 @@ node_modules/
 
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
@@ -25,13 +26,16 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
 
 # macOS
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local environment files
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +43,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# IDE settings
+.idea/
+
+# Local font asset — excluded because the bundled Fontshare EULA prohibits redistribution.
+/assets/fonts/Nippo/

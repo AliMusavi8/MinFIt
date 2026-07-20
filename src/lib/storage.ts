@@ -1,9 +1,10 @@
-// ─── FlowNote Streak — Local Storage Layer ────────────────────
+// ─── MinFit — Local Storage Layer ─────────────────────────────
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { JournalEntry, StreakData } from '../types';
 
 const KEYS = {
+// Legacy key names are retained so existing MinFit data remains available after the rename.
   ENTRIES: '@flownote/entries',
   STREAK: '@flownote/streak',
 };
@@ -82,4 +83,8 @@ export async function resetStreak(): Promise<StreakData> {
   const streak = { ...DEFAULT_STREAK };
   await saveStreak(streak);
   return streak;
+}
+
+export async function clearMinFitData(): Promise<void> {
+  await AsyncStorage.multiRemove([KEYS.ENTRIES, KEYS.STREAK]);
 }

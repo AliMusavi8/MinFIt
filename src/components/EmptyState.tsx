@@ -1,8 +1,8 @@
-// ─── FlowNote Streak — Empty State Component ────────────────────
+// ─── MinFit — Empty State Component ──────────────────────────────
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, typography, spacing } from '../lib/theme';
+import { colors, fonts, typography, spacing } from '../lib/theme';
 
 interface EmptyStateProps {
   title: string;
@@ -31,6 +31,7 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     color: colors.textMuted,
     fontStyle: 'italic',
+    fontFamily: fonts.regular,
     textAlign: 'center',
     marginBottom: spacing.lg,
     opacity: 0.6,
@@ -44,6 +45,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.lg,
     fontWeight: '300',
+    fontFamily: fonts.regular,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
     textAlign: 'center',
@@ -52,6 +54,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     color: colors.textMuted,
     textAlign: 'center',
+    fontFamily: fonts.regular,
     lineHeight: 20,
   },
 });

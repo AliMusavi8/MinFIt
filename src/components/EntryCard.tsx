@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Journal Entry Card ────────────────────
+// ─── MinFit — Journal Entry Card ─────────────────────────────────
 //
 // Redesigned to match reference Notes screen: dark card with
 // headline-style title, body text, and subtle hover border.
@@ -15,7 +15,7 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { JournalEntry } from '../types';
-import { colors, typography, spacing, radius } from '../lib/theme';
+import { colors, fonts, typography, spacing, radius } from '../lib/theme';
 
 dayjs.extend(relativeTime);
 
@@ -38,8 +38,12 @@ export function EntryCard({ entry, onPress, onDelete }: EntryCardProps) {
     dateDisplay = dayjs(entry.date).format('MMM D');
   }
 
-  // Extract first line as title (or use first 50 chars)
-  const lines = entry.content.split('\n').filter(l => l.trim());
+  const plainContent = entry.content
+    .replace(/<\/(?:div|p|h[1-6]|li)>/gi, '\n')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ');
+  const lines = plainContent.split('\n').filter(l => l.trim());
   const title = lines[0]?.slice(0, 60) || 'Untitled';
   const body = lines.slice(1).join(' ').trim();
   const preview = body.length > 160 ? body.slice(0, 160) + '...' : body;
@@ -118,6 +122,7 @@ const styles = StyleSheet.create({
     fontSize: typography.labelSm,
     color: colors.textMuted,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     letterSpacing: 2,
     marginBottom: spacing.sm,
     opacity: 0.6,
@@ -136,6 +141,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.headlineMd,
     fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
     letterSpacing: -0.5,
     marginBottom: spacing.sm,
@@ -144,5 +150,6 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     color: colors.textSecondary,
     lineHeight: 24,
+    fontFamily: fonts.regular,
   },
 });

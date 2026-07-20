@@ -1,4 +1,4 @@
-// ─── FlowNote Streak — Streak Logic ────────────────────
+// ─── MinFit — Streak Logic ─────────────────────────────
 
 import dayjs from 'dayjs';
 import { StreakData } from '../types';
