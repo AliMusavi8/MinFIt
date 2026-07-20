@@ -3,7 +3,7 @@
 // central glowing orb, streak card with weekly circles,
 // best streak badge, monthly consistency calendar.
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -19,29 +19,32 @@ import { HeatmapCalendar } from '../src/components/HeatmapCalendar';
 
 export default function HomeScreen() {
   const { streak, liveStreak, isCheckedInToday, checkin } = useStreak();
+  const [calendarScrollReserve, setCalendarScrollReserve] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const calendarY = useRef(0);
-  const scrollY = useRef(0);
-  const scrollBeforeCalendarExpand = useRef(0);
+  const calendarHeights = useRef({ collapsed: 0, expanded: 0 });
 
   const handleCheckin = async () => {
     await checkin();
   };
 
   const handleCalendarExpand = () => {
-    scrollBeforeCalendarExpand.current = scrollY.current;
-    setTimeout(() => {
+    setCalendarScrollReserve(0);
+    requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({
         y: Math.max(calendarY.current - spacing.md, 0),
         animated: true,
       });
-    }, 340);
+    });
   };
 
   const handleCalendarCollapse = () => {
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: scrollBeforeCalendarExpand.current, animated: false });
-    }, 340);
+    const { collapsed, expanded } = calendarHeights.current;
+    setCalendarScrollReserve(Math.max(expanded - collapsed, 0));
+  };
+
+  const handleCalendarLayoutChange = (height: number, isExpanded: boolean) => {
+    calendarHeights.current[isExpanded ? 'expanded' : 'collapsed'] = height;
   };
 
   return (
@@ -49,10 +52,11 @@ export default function HomeScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: spacing.xxl + spacing.xl + calendarScrollReserve },
+        ]}
         showsVerticalScrollIndicator={false}
-        onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
-        scrollEventThrottle={16}
       >
         {/* Header — branded "Fitness Tracking" */}
         <View style={styles.header}>
@@ -99,6 +103,7 @@ export default function HomeScreen() {
             checkinHistory={streak.checkinHistory}
             onExpand={handleCalendarExpand}
             onCollapse={handleCalendarCollapse}
+            onLayoutChange={handleCalendarLayoutChange}
           />
         </View>
       </ScrollView>

@@ -14,11 +14,17 @@ interface HeatmapCalendarProps {
   weeks?: number;
   onExpand?: () => void;
   onCollapse?: () => void;
+  onLayoutChange?: (height: number, isExpanded: boolean) => void;
 }
 
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-export function HeatmapCalendar({ checkinHistory, onExpand, onCollapse }: HeatmapCalendarProps) {
+export function HeatmapCalendar({
+  checkinHistory,
+  onExpand,
+  onCollapse,
+  onLayoutChange,
+}: HeatmapCalendarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const today = dayjs();
   const historySet = new Set(checkinHistory);
@@ -153,7 +159,10 @@ export function HeatmapCalendar({ checkinHistory, onExpand, onCollapse }: Heatma
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(event) => onLayoutChange?.(event.nativeEvent.layout.height, isExpanded)}
+    >
       {/* Header */}
       <View style={[styles.headerRow, { marginBottom: isExpanded ? spacing.lg : 0 }]}>
         <View style={styles.titleContainer}>
