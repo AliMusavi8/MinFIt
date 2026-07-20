@@ -36,9 +36,6 @@ npx expo start
 
 Use Expo Go or an Android/iOS simulator to open the app. `npm run typecheck` verifies the TypeScript project.
 
-### Font setup
-
-The Nippo font files are intentionally excluded from Git because the included Fontshare EULA prohibits redistributing them. Before running the app, download Nippo under its license and place the extracted bundle at `assets/fonts/Nippo/`; the loader expects files such as `assets/fonts/Nippo/Fonts/OTF/Nippo-Regular.otf`.
 
 ## Project structure
 
