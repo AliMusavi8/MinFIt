@@ -7,17 +7,18 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation } from 'react-native';
 import dayjs from 'dayjs';
-import { colors, typography, spacing, radius } from '../lib/theme';
+import { colors, fonts, typography, spacing, radius } from '../lib/theme';
 
 interface HeatmapCalendarProps {
   checkinHistory: string[];
   weeks?: number;
+  onExpand?: () => void;
   onCollapse?: () => void;
 }
 
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-export function HeatmapCalendar({ checkinHistory, onCollapse }: HeatmapCalendarProps) {
+export function HeatmapCalendar({ checkinHistory, onExpand, onCollapse }: HeatmapCalendarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const today = dayjs();
   const historySet = new Set(checkinHistory);
@@ -25,9 +26,24 @@ export function HeatmapCalendar({ checkinHistory, onCollapse }: HeatmapCalendarP
   const year = today.format('YYYY');
 
   const toggleExpanded = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    if (isExpanded && onCollapse) {
-      onCollapse();
+    LayoutAnimation.configureNext({
+      duration: 320,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+      delete: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+    });
+    if (isExpanded) {
+      onCollapse?.();
+    } else {
+      onExpand?.();
     }
     setIsExpanded(!isExpanded);
   };
@@ -101,27 +117,30 @@ export function HeatmapCalendar({ checkinHistory, onCollapse }: HeatmapCalendarP
             {week.map((cell, ci) => (
               <View key={ci} style={styles.cellWrapper}>
                 {cell.day !== null ? (
-                  <View
-                    style={[
-                      styles.cell,
-                      cell.isActive && styles.cellActive,
-                      cell.isToday && !cell.isActive && styles.cellToday,
-                      cell.isFuture && !cell.isActive && styles.cellFuture,
-                      !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellMissed,
-                    ]}
-                  >
-                    <Text
+                  <>
+                    {cell.isActive && <View style={styles.cellGlow} />}
+                    <View
                       style={[
-                        styles.cellText,
-                        cell.isActive && styles.cellTextActive,
-                        cell.isToday && !cell.isActive && styles.cellTextToday,
-                        cell.isFuture && !cell.isActive && styles.cellTextFuture,
-                        !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
+                        styles.cell,
+                        cell.isActive && styles.cellActive,
+                        cell.isToday && !cell.isActive && styles.cellToday,
+                        cell.isFuture && !cell.isActive && styles.cellFuture,
+                        !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellMissed,
                       ]}
                     >
-                      {cell.day}
-                    </Text>
-                  </View>
+                      <Text
+                        style={[
+                          styles.cellText,
+                          cell.isActive && styles.cellTextActive,
+                          cell.isToday && !cell.isActive && styles.cellTextToday,
+                          cell.isFuture && !cell.isActive && styles.cellTextFuture,
+                          !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
+                        ]}
+                      >
+                        {cell.day}
+                      </Text>
+                    </View>
+                  </>
                 ) : (
                   <View style={styles.cellEmpty} />
                 )}
@@ -134,7 +153,7 @@ export function HeatmapCalendar({ checkinHistory, onCollapse }: HeatmapCalendarP
   };
 
   return (
-    <View style={[styles.container, { paddingVertical: isExpanded ? spacing.lg : 14 }]}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={[styles.headerRow, { marginBottom: isExpanded ? spacing.lg : 0 }]}>
         <View style={styles.titleContainer}>
@@ -198,6 +217,7 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: 1.5,
     lineHeight: 15,
@@ -224,7 +244,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(85, 234, 77, 0.25)',
     borderRadius: radius.md,
     width: 100,
-    paddingVertical: 6,
+    height: 38,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -237,6 +257,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 9,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 1,
   },
   collapseButtonText: {
@@ -283,6 +304,7 @@ const styles = StyleSheet.create({
   cellWrapper: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cell: {
     width: CELL_SIZE,
@@ -293,11 +315,13 @@ const styles = StyleSheet.create({
   },
   cellActive: {
     backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 6,
-    elevation: 4,
+  },
+  cellGlow: {
+    position: 'absolute',
+    width: CELL_SIZE + 6,
+    height: CELL_SIZE + 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(85, 234, 77, 0.14)',
   },
   cellToday: {
     borderWidth: 1.5,

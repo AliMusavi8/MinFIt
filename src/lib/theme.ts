@@ -103,3 +103,10 @@ export const typography = {
   // Navigation
   navItem: 13,
 } as const;
+
+export const fonts = {
+  regular: 'Saira_400Regular',
+  medium: 'Saira_500Medium',
+  semibold: 'Saira_600SemiBold',
+  bold: 'Saira_700Bold',
+} as const;

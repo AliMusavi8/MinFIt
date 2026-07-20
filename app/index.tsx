@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography, spacing } from '../src/lib/theme';
+import { colors, fonts, typography, spacing } from '../src/lib/theme';
 import { useStreak } from '../src/hooks/useStreak';
 import { StreakRing } from '../src/components/StreakRing';
 import { CheckinButton } from '../src/components/CheckinButton';
@@ -21,16 +21,27 @@ export default function HomeScreen() {
   const { streak, liveStreak, isCheckedInToday, checkin } = useStreak();
   const scrollRef = useRef<ScrollView>(null);
   const calendarY = useRef(0);
+  const scrollY = useRef(0);
+  const scrollBeforeCalendarExpand = useRef(0);
 
   const handleCheckin = async () => {
     await checkin();
   };
 
-  const handleCalendarCollapse = () => {
-    // Scroll to keep the calendar card visible after collapsing
+  const handleCalendarExpand = () => {
+    scrollBeforeCalendarExpand.current = scrollY.current;
     setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: calendarY.current - 20, animated: true });
-    }, 50);
+      scrollRef.current?.scrollTo({
+        y: Math.max(calendarY.current - spacing.md, 0),
+        animated: true,
+      });
+    }, 340);
+  };
+
+  const handleCalendarCollapse = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: scrollBeforeCalendarExpand.current, animated: false });
+    }, 340);
   };
 
   return (
@@ -40,6 +51,8 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
       >
         {/* Header — branded "Fitness Tracking" */}
         <View style={styles.header}>
@@ -71,7 +84,6 @@ export default function HomeScreen() {
         {/* Streak Card + Best Streak */}
         <View style={styles.section}>
           <StreakRing
-            currentStreak={liveStreak}
             longestStreak={streak.longestStreak}
             isCheckedIn={isCheckedInToday}
             checkinHistory={streak.checkinHistory}
@@ -81,10 +93,11 @@ export default function HomeScreen() {
         {/* Monthly Consistency Calendar */}
         <View
           style={styles.section}
-          onLayout={(e) => { calendarY.current = e.nativeEvent.layout.y; }}
+          onLayout={(event) => { calendarY.current = event.nativeEvent.layout.y; }}
         >
           <HeatmapCalendar
             checkinHistory={streak.checkinHistory}
+            onExpand={handleCalendarExpand}
             onCollapse={handleCalendarCollapse}
           />
         </View>
@@ -121,12 +134,14 @@ const styles = StyleSheet.create({
   headerAccent: {
     fontSize: typography.headlineMd,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
     letterSpacing: -0.5,
   },
   headerTitle: {
     fontSize: typography.headlineMd,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     letterSpacing: -0.5,
   },
@@ -162,6 +177,7 @@ const styles = StyleSheet.create({
     fontSize: typography.labelMd,
     color: colors.primary,
     fontWeight: '500',
+    fontFamily: fonts.medium,
     letterSpacing: 0.5,
   },
 

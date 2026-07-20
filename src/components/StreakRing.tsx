@@ -9,7 +9,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import dayjs from 'dayjs';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { colors, typography, spacing, radius } from '../lib/theme';
+import { colors, fonts, typography, spacing, radius } from '../lib/theme';
 
 // Custom SVG Icons to match reference designs
 function FlameIcon({ size = 32, color = colors.primary }: { size?: number; color?: string }) {
@@ -49,7 +49,6 @@ function AwardIcon({ size = 32, color = colors.bg, bgCircleColor = colors.cream 
 }
 
 interface StreakRingProps {
-  currentStreak: number;
   longestStreak: number;
   isCheckedIn: boolean;
   checkinHistory?: string[];
@@ -81,7 +80,6 @@ function getWeekStatus(checkinHistory: string[]) {
 }
 
 export function StreakRing({
-  currentStreak,
   longestStreak,
   isCheckedIn,
   checkinHistory = [],
@@ -92,15 +90,9 @@ export function StreakRing({
     <View style={styles.container}>
       {/* Streak Card */}
       <View style={styles.card}>
-        {/* Header: Streak count + fire icon */}
+        {/* Header */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.streakLabel}>STREAK</Text>
-            <View style={styles.numberRow}>
-              <Text style={styles.streakNumber}>{currentStreak}</Text>
-              <Text style={styles.daysLabel}> DAYS</Text>
-            </View>
-          </View>
+          <Text style={styles.streakLabel}>WEEKLY STREAK</Text>
           <FlameIcon size={30} color={colors.primary} />
         </View>
 
@@ -108,20 +100,23 @@ export function StreakRing({
         <View style={styles.weekRow}>
           {weekStatus.map((day) => (
             <View key={day.dateStr} style={styles.dayColumn}>
-              <View
-                style={[
-                  styles.dayCircle,
-                  day.isCheckedIn && styles.dayCircleChecked,
-                  day.isToday && !day.isCheckedIn && styles.dayCircleToday,
-                  day.isFuture && !day.isCheckedIn && styles.dayCircleFuture,
-                ]}
-              >
-                {day.isCheckedIn && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
-                {day.isToday && !day.isCheckedIn && (
-                  <View style={styles.todayDot} />
-                )}
+              <View style={styles.dayCircleSlot}>
+                {day.isCheckedIn && <View style={styles.dayCircleGlow} />}
+                <View
+                  style={[
+                    styles.dayCircle,
+                    day.isCheckedIn && styles.dayCircleChecked,
+                    day.isToday && !day.isCheckedIn && styles.dayCircleToday,
+                    day.isFuture && !day.isCheckedIn && styles.dayCircleFuture,
+                  ]}
+                >
+                  {day.isCheckedIn && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                  {day.isToday && !day.isCheckedIn && (
+                    <View style={styles.todayDot} />
+                  )}
+                </View>
               </View>
               <Text
                 style={[
@@ -175,28 +170,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   streakLabel: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '600',
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  numberRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  streakNumber: {
-    fontSize: typography.xl,
-    fontWeight: '700',
+    fontSize: 11,
     color: colors.text,
-    letterSpacing: -1,
-  },
-  daysLabel: {
-    fontSize: typography.xs,
-    color: colors.textMuted,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    marginBottom: 4,
   },
 
   // Weekly circles
@@ -207,6 +186,19 @@ const styles = StyleSheet.create({
   dayColumn: {
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  dayCircleSlot: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCircleGlow: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(85, 234, 77, 0.14)',
   },
   dayCircle: {
     width: 32,
@@ -252,6 +244,7 @@ const styles = StyleSheet.create({
   dayLabelToday: {
     color: colors.primary,
     fontWeight: '700',
+    fontFamily: fonts.bold,
   },
 
   // Best Streak card
@@ -267,10 +260,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bestLabel: {
-    fontSize: typography.labelSm,
+    fontSize: 11,
     color: colors.primary,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    fontFamily: fonts.bold,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   bestValue: {
