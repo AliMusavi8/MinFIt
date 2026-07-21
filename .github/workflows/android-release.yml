@@ -95,7 +95,7 @@ jobs:
               }
           }
           EOF
-          printf '\napply from: "signing.gradle"\n' >> android/app/build.gradle
+          sed -i '/^android {/i apply from: "signing.gradle"\n' android/app/build.gradle
           sed -i '0,/signingConfig signingConfigs.debug/! s/signingConfig signingConfigs.debug/signingConfig signingConfigs.release/' android/app/build.gradle
 
       - name: Set Android version
