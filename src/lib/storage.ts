@@ -1,7 +1,7 @@
 // ─── MinFit — Local Storage Layer ─────────────────────────────
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { JournalEntry, StreakData } from '../types';
+import { JournalEntry, MinFitBackup, StreakData } from '../types';
 
 const KEYS = {
 // Legacy key names are retained so existing MinFit data remains available after the rename.
@@ -87,4 +87,55 @@ export async function resetStreak(): Promise<StreakData> {
 
 export async function clearMinFitData(): Promise<void> {
   await AsyncStorage.multiRemove([KEYS.ENTRIES, KEYS.STREAK]);
+}
+
+export async function createMinFitBackup(): Promise<MinFitBackup> {
+  const [entries, streak] = await Promise.all([getEntries(), getStreak()]);
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    entries,
+    streak,
+  };
+}
+
+function isJournalEntry(value: unknown): value is JournalEntry {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as JournalEntry;
+  return typeof entry.id === 'string'
+    && typeof entry.date === 'string'
+    && typeof entry.content === 'string'
+    && typeof entry.createdAt === 'string'
+    && typeof entry.updatedAt === 'string';
+}
+
+function isStreakData(value: unknown): value is StreakData {
+  if (!value || typeof value !== 'object') return false;
+  const streak = value as StreakData;
+  return Number.isFinite(streak.currentStreak)
+    && Number.isFinite(streak.longestStreak)
+    && (streak.lastCheckinDate === null || typeof streak.lastCheckinDate === 'string')
+    && Array.isArray(streak.checkinHistory)
+    && streak.checkinHistory.every((date) => typeof date === 'string');
+}
+
+function isMinFitBackup(value: unknown): value is MinFitBackup {
+  if (!value || typeof value !== 'object') return false;
+  const backup = value as MinFitBackup;
+  return backup.version === 1
+    && typeof backup.exportedAt === 'string'
+    && Array.isArray(backup.entries)
+    && backup.entries.every(isJournalEntry)
+    && isStreakData(backup.streak);
+}
+
+export async function restoreMinFitBackup(backup: unknown): Promise<void> {
+  if (!isMinFitBackup(backup)) {
+    throw new Error('This file is not a valid MinFit backup.');
+  }
+
+  await AsyncStorage.multiSet([
+    [KEYS.ENTRIES, JSON.stringify(backup.entries)],
+    [KEYS.STREAK, JSON.stringify(backup.streak)],
+  ]);
 }

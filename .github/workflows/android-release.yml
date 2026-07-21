@@ -1,0 +1,130 @@
+name: Android release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Expo app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+  release:
+    name: Build and publish APK
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;27.1.12297006"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore private font assets
+        env:
+          NIPPO_REGULAR_BASE64: ${{ secrets.NIPPO_REGULAR_BASE64 }}
+          NIPPO_MEDIUM_BASE64: ${{ secrets.NIPPO_MEDIUM_BASE64 }}
+          NIPPO_BOLD_BASE64: ${{ secrets.NIPPO_BOLD_BASE64 }}
+        run: |
+          mkdir -p assets/fonts/Nippo/Fonts/OTF
+          printf '%s' "$NIPPO_REGULAR_BASE64" | base64 --decode > assets/fonts/Nippo/Fonts/OTF/Nippo-Regular.otf
+          printf '%s' "$NIPPO_MEDIUM_BASE64" | base64 --decode > assets/fonts/Nippo/Fonts/OTF/Nippo-Medium.otf
+          printf '%s' "$NIPPO_BOLD_BASE64" | base64 --decode > assets/fonts/Nippo/Fonts/OTF/Nippo-Bold.otf
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/minfit-release.jks
+          chmod 600 android/app/minfit-release.jks
+          cat > android/app/signing.gradle <<'EOF'
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file("minfit-release.jks")
+                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                  }
+              }
+          }
+          EOF
+          printf '\napply from: "signing.gradle"\n' >> android/app/build.gradle
+          sed -i '0,/signingConfig signingConfigs.debug/! s/signingConfig signingConfigs.debug/signingConfig signingConfigs.release/' android/app/build.gradle
+
+      - name: Set Android version
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          sed -i -E "s/versionCode [0-9]+/versionCode ${GITHUB_RUN_NUMBER}/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]+\"/versionName \"${release_version}\"/" android/app/build.gradle
+
+      - name: Build signed ARM64 APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          ./gradlew -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" assembleRelease
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="android/app/build/outputs/apk/release/app-release.apk"
+          asset="${apk}#MinFit-${GITHUB_REF_NAME}-arm64.apk"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$asset" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$asset" --title "MinFit ${GITHUB_REF_NAME}" --generate-notes
+          fi
+
+      - name: Remove signing files
+        if: always()
+        run: rm -f android/app/minfit-release.jks android/app/signing.gradle

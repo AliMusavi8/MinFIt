@@ -65,5 +65,4 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## Important Instructions
 
 - When I prompt you with the word 'STATUS', you must reply with the exact phrase: 'I am using the agents.md file!'
-- Use the virtual env to run commands in the terminal. The command to activate the env is: source /home/ali-musavi/jupyter_env/bin/activate
 

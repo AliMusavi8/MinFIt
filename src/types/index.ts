@@ -15,4 +15,11 @@ export interface StreakData {
   checkinHistory: string[]; // Array of YYYY-MM-DD dates
 }
 
+export interface MinFitBackup {
+  version: 1;
+  exportedAt: string;
+  entries: JournalEntry[];
+  streak: StreakData;
+}
+
 export type ViewMode = 'list' | 'calendar';

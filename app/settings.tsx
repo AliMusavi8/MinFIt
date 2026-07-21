@@ -10,13 +10,23 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts, typography, spacing, radius } from '../src/lib/theme';
+import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import * as Updates from 'expo-updates';
-import { clearMinFitData } from '../src/lib/storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { clearMinFitData, createMinFitBackup, restoreMinFitBackup } from '../src/lib/storage';
 import { ProfileAvatar } from '../src/components/ProfileAvatar';
 
 export default function SettingsScreen() {
   const [clearing, setClearing] = useState(false);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const appVersion = Constants.appOwnership === 'expo'
+    ? Constants.expoConfig?.version
+    : Application.nativeApplicationVersion;
 
   const handleCheckForUpdates = async () => {
     if (!Updates.isEnabled) {
@@ -71,6 +81,70 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      if (!FileSystem.documentDirectory) throw new Error('Backup storage is unavailable.');
+      const backup = await createMinFitBackup();
+      const date = new Date().toISOString().slice(0, 10);
+      const fileUri = `${FileSystem.documentDirectory}minfit-backup-${date}.json`;
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(backup, null, 2));
+
+      if (!await Sharing.isAvailableAsync()) {
+        Alert.alert('Backup created', 'Your backup was created, but sharing is unavailable on this device.');
+        return;
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/json',
+        dialogTitle: 'Save MinFit backup',
+      });
+    } catch {
+      Alert.alert('Export failed', 'Your data could not be exported. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const restoreBackup = async (backup: unknown) => {
+    setImporting(true);
+    try {
+      await restoreMinFitBackup(backup);
+      Alert.alert('Backup imported', 'Restart MinFit to load your restored streaks and journal entries.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Your data could not be imported.';
+      Alert.alert('Import failed', message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', 'text/json', 'text/plain'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+
+      const contents = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      const backup: unknown = JSON.parse(contents);
+      Alert.alert(
+        'Replace local data?',
+        'Importing replaces the current streaks and journal entries on this device.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Import', style: 'destructive', onPress: () => { void restoreBackup(backup); } },
+        ],
+      );
+    } catch {
+      Alert.alert('Import failed', 'Choose a valid MinFit backup file and try again.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -120,6 +194,30 @@ export default function SettingsScreen() {
                 <Text style={styles.settingSubtitle}>MinFit does not currently sync data to a server</Text>
               </View>
             </View>
+            <View style={styles.divider} />
+            <Pressable
+              style={styles.settingRow}
+              onPress={handleExport}
+              disabled={exporting || importing}
+            >
+              <View style={styles.rowContent}>
+                <Text style={styles.settingTitle}>{exporting ? 'Exporting...' : 'Export data'}</Text>
+                <Text style={styles.settingSubtitle}>Save your streaks and notes as a backup file</Text>
+              </View>
+              <Text style={styles.actionIcon}>↑</Text>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable
+              style={styles.settingRow}
+              onPress={handleImport}
+              disabled={exporting || importing}
+            >
+              <View style={styles.rowContent}>
+                <Text style={styles.settingTitle}>{importing ? 'Importing...' : 'Import data'}</Text>
+                <Text style={styles.settingSubtitle}>Restore streaks and notes from a backup file</Text>
+              </View>
+              <Text style={styles.actionIcon}>↓</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -147,7 +245,7 @@ export default function SettingsScreen() {
         <View style={styles.versionContainer}>
           <View style={styles.versionBadge}>
             <View style={styles.versionDot} />
-            <Text style={styles.versionText}>MinFit v0.0.1</Text>
+            <Text style={styles.versionText}>MinFit v{appVersion ?? '0.0.1'}</Text>
           </View>
         </View>
       </ScrollView>
