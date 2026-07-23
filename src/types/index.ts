@@ -3,7 +3,8 @@
 export interface JournalEntry {
   id: string;
   date: string; // YYYY-MM-DD
-  content: string;
+  title: string;
+  body: string;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
 }

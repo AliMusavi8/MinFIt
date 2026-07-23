@@ -19,12 +19,13 @@ export function useJournal() {
     })();
   }, []);
 
-  const addEntry = useCallback(async (content: string, date?: string) => {
+  const addEntry = useCallback(async (title: string, body: string, date?: string) => {
     const now = new Date().toISOString();
     const entry: JournalEntry = {
       id: generateId(),
       date: date || dayjs().format('YYYY-MM-DD'),
-      content,
+      title,
+      body,
       createdAt: now,
       updatedAt: now,
     };
@@ -33,8 +34,8 @@ export function useJournal() {
     return entry;
   }, []);
 
-  const updateEntry = useCallback(async (id: string, content: string) => {
-    const updated = await storage.updateEntry(id, { content });
+  const updateEntry = useCallback(async (id: string, title: string, body: string) => {
+    const updated = await storage.updateEntry(id, { title, body });
     setEntries(updated);
   }, []);
 
@@ -52,7 +53,9 @@ export function useJournal() {
     (query: string) => {
       if (!query.trim()) return entries;
       const lower = query.toLowerCase();
-      return entries.filter((e) => e.content.toLowerCase().includes(lower));
+      return entries.filter((e) =>
+        e.title.toLowerCase().includes(lower) || e.body.toLowerCase().includes(lower)
+      );
     },
     [entries]
   );

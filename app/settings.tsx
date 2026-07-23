@@ -2,7 +2,7 @@
 //
 // Redesigned to match reference: branded header, bento-grid stat cards,
 // Application settings with toggle switches, Privacy & Export section,
-// Danger Zone, and version badge.
+// and version badge.
 
 import React, { useState } from 'react';
 import {
@@ -16,11 +16,10 @@ import * as Updates from 'expo-updates';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { clearMinFitData, createMinFitBackup, restoreMinFitBackup } from '../src/lib/storage';
+import { createMinFitBackup, restoreMinFitBackup } from '../src/lib/storage';
 import { ProfileAvatar } from '../src/components/ProfileAvatar';
 
 export default function SettingsScreen() {
-  const [clearing, setClearing] = useState(false);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -59,26 +58,6 @@ export default function SettingsScreen() {
     } finally {
       setCheckingForUpdates(false);
     }
-  };
-
-  const handleClearAll = () => {
-    Alert.alert(
-      'Delete Account & Data',
-      'This action is permanent and cannot be undone. All journal entries and streak data will be deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Everything',
-          style: 'destructive',
-          onPress: async () => {
-            setClearing(true);
-            await clearMinFitData();
-            setClearing(false);
-            Alert.alert('Done', 'Your MinFit data has been cleared.');
-          },
-        },
-      ]
-    );
   };
 
   const handleExport = async () => {
@@ -204,7 +183,6 @@ export default function SettingsScreen() {
                 <Text style={styles.settingTitle}>{exporting ? 'Exporting...' : 'Export data'}</Text>
                 <Text style={styles.settingSubtitle}>Save your streaks and notes as a backup file</Text>
               </View>
-              <Text style={styles.actionIcon}>↑</Text>
             </Pressable>
             <View style={styles.divider} />
             <Pressable
@@ -216,29 +194,8 @@ export default function SettingsScreen() {
                 <Text style={styles.settingTitle}>{importing ? 'Importing...' : 'Import data'}</Text>
                 <Text style={styles.settingSubtitle}>Restore streaks and notes from a backup file</Text>
               </View>
-              <Text style={styles.actionIcon}>↓</Text>
             </Pressable>
           </View>
-        </View>
-
-        {/* Danger Zone */}
-        <View style={styles.section}>
-          <Text style={styles.dangerSectionTitle}>DANGER ZONE</Text>
-          <Pressable
-            style={styles.dangerCard}
-            onPress={handleClearAll}
-            disabled={clearing}
-          >
-            <View>
-              <Text style={styles.dangerTitle}>
-                {clearing ? 'Deleting...' : 'Delete Account & Data'}
-              </Text>
-              <Text style={styles.dangerSubtitle}>
-                This action is permanent and cannot be undone
-              </Text>
-            </View>
-            <Text style={styles.dangerIcon}>✕</Text>
-          </Pressable>
         </View>
 
         {/* Version badge */}
@@ -306,16 +263,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginLeft: 2,
   },
-  dangerSectionTitle: {
-    fontSize: typography.labelSm,
-    color: 'rgba(220, 20, 60, 0.6)',
-    fontWeight: '600',
-    fontFamily: fonts.semibold,
-    letterSpacing: 1.5,
-    marginBottom: spacing.md,
-    marginLeft: 2,
-  },
-
   // Cards
   card: {
     backgroundColor: colors.surfaceSubtle,
@@ -355,35 +302,6 @@ const styles = StyleSheet.create({
   actionIcon: {
     fontSize: 20,
     color: colors.textSecondary,
-    fontFamily: fonts.regular,
-  },
-
-  // Danger zone
-  dangerCard: {
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(220, 20, 60, 0.15)',
-    padding: spacing.md + 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dangerTitle: {
-    fontSize: typography.base,
-    color: colors.danger,
-    fontWeight: '500',
-    fontFamily: fonts.medium,
-  },
-  dangerSubtitle: {
-    fontSize: typography.xs,
-    color: 'rgba(188, 203, 180, 0.5)',
-    marginTop: 2,
-    fontFamily: fonts.regular,
-  },
-  dangerIcon: {
-    fontSize: 20,
-    color: 'rgba(220, 20, 60, 0.7)',
     fontFamily: fonts.regular,
   },
 

@@ -14,51 +14,53 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import dayjs from 'dayjs';
 import { colors, fonts, typography, spacing, radius } from '../src/lib/theme';
 import { useJournal } from '../src/hooks/useJournal';
-import { useStreak } from '../src/hooks/useStreak';
 import { JournalEntry } from '../src/types';
 import { EntryCard } from '../src/components/EntryCard';
 import { EmptyState } from '../src/components/EmptyState';
 import { ProfileAvatar } from '../src/components/ProfileAvatar';
-import { RichTextEditor } from '../src/components/RichTextEditor';
 
 export default function JournalScreen() {
   const { entries, loading, addEntry, updateEntry, deleteEntry, searchEntries } = useJournal();
-  const { liveStreak } = useStreak();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
-  const [editorContent, setEditorContent] = useState('');
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteBody, setNoteBody] = useState('');
 
   const displayEntries = searchQuery ? searchEntries(searchQuery) : entries;
 
   const handleNewEntry = () => {
     setEditingEntry(null);
-    setEditorContent('');
+    setNoteTitle('');
+    setNoteBody('');
     setIsEditing(true);
   };
 
   const handleEditEntry = (entry: JournalEntry) => {
     setEditingEntry(entry);
-    setEditorContent(entry.content);
+    setNoteTitle(entry.title);
+    setNoteBody(entry.body);
     setIsEditing(true);
   };
 
   const handleSave = async () => {
-    const content = editorContent.trim();
-    const plainContent = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-    if (!plainContent) { setIsEditing(false); return; }
-    if (editingEntry) { await updateEntry(editingEntry.id, content); }
-    else { await addEntry(content); }
+    const title = noteTitle.trim();
+    const body = noteBody.trim();
+    if (!title && !body) { setIsEditing(false); return; }
+    if (editingEntry) { await updateEntry(editingEntry.id, title || 'Untitled', body); }
+    else { await addEntry(title || 'Untitled', body); }
     setIsEditing(false);
-    setEditorContent('');
+    setNoteTitle('');
+    setNoteBody('');
     setEditingEntry(null);
   };
 
   const handleDiscard = () => {
     Keyboard.dismiss();
     setIsEditing(false);
-    setEditorContent('');
+    setNoteTitle('');
+    setNoteBody('');
     setEditingEntry(null);
   };
 
@@ -105,7 +107,7 @@ export default function JournalScreen() {
         {/* Motivational quote */}
         <View style={styles.quoteContainer}>
           <Text style={styles.quoteText}>
-            "Focus on the process, not just the result."
+            بغیر پانی کے پودا بڑا نہیں ہوتا
           </Text>
         </View>
 
@@ -128,16 +130,6 @@ export default function JournalScreen() {
                 subtitle="Tap + to write your first reflection."
               />
             )
-          }
-          ListFooterComponent={
-            displayEntries.length > 0 ? (
-              <View style={styles.streakBadge}>
-                <Text style={styles.streakBadgeIcon}>★</Text>
-                <Text style={styles.streakBadgeText}>
-                  {liveStreak} DAY REFLECTION STREAK
-                </Text>
-              </View>
-            ) : null
           }
         />
 
@@ -175,13 +167,24 @@ export default function JournalScreen() {
                   <Text style={styles.editorSave}>Save</Text>
                 </Pressable>
               </View>
-              {isEditing && (
-                <RichTextEditor
-                  key={editingEntry?.id ?? 'new'}
-                  initialContent={editorContent}
-                  onChange={setEditorContent}
+              <View style={styles.noteFields}>
+                <TextInput
+                  style={styles.titleInput}
+                  value={noteTitle}
+                  onChangeText={setNoteTitle}
+                  placeholder="Title"
+                  placeholderTextColor={colors.textMuted}
                 />
-              )}
+                <TextInput
+                  style={styles.bodyInput}
+                  value={noteBody}
+                  onChangeText={setNoteBody}
+                  placeholder="Write your note..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
             </SafeAreaView>
           </KeyboardAvoidingView>
         </Modal>
@@ -296,36 +299,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl + spacing.xl,
   },
 
-  // Streak badge
-  streakBadge: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: '#f0f0f5',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: 9999,
-    marginTop: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  streakBadgeIcon: {
-    fontSize: 16,
-    color: colors.bg,
-    fontFamily: fonts.regular,
-  },
-  streakBadgeText: {
-    fontSize: typography.labelMd,
-    fontWeight: '500',
-    fontFamily: fonts.medium,
-    color: colors.bg,
-    letterSpacing: 0.5,
-  },
-
   // FAB
   fab: {
     position: 'absolute',
@@ -358,6 +331,26 @@ const styles = StyleSheet.create({
   },
   editorSafe: {
     flex: 1,
+  },
+  noteFields: {
+    flex: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  titleInput: {
+    color: colors.text,
+    fontFamily: fonts.medium,
+    fontSize: typography.headlineMd,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: spacing.sm,
+  },
+  bodyInput: {
+    flex: 1,
+    color: colors.text,
+    fontFamily: fonts.regular,
+    fontSize: typography.base,
+    lineHeight: 24,
   },
   editorHeader: {
     flexDirection: 'row',

@@ -12,7 +12,6 @@ interface EmptyStateProps {
 export function EmptyState({ title, subtitle }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.quote}>"Focus on the process, not just the result."</Text>
       <View style={styles.divider} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
@@ -26,15 +25,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xxl * 1.5,
     paddingHorizontal: spacing.xl,
-  },
-  quote: {
-    fontSize: typography.base,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-    fontFamily: fonts.regular,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-    opacity: 0.6,
   },
   divider: {
     width: 40,

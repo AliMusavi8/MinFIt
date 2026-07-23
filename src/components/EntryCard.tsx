@@ -38,15 +38,7 @@ export function EntryCard({ entry, onPress, onDelete }: EntryCardProps) {
     dateDisplay = dayjs(entry.date).format('MMM D');
   }
 
-  const plainContent = entry.content
-    .replace(/<\/(?:div|p|h[1-6]|li)>/gi, '\n')
-    .replace(/<br\s*\/?\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ');
-  const lines = plainContent.split('\n').filter(l => l.trim());
-  const title = lines[0]?.slice(0, 60) || 'Untitled';
-  const body = lines.slice(1).join(' ').trim();
-  const preview = body.length > 160 ? body.slice(0, 160) + '...' : body;
+  const preview = entry.body.length > 160 ? entry.body.slice(0, 160) + '...' : entry.body;
 
   const handleLongPress = () => {
     Alert.alert('Delete Entry', 'Are you sure you want to delete this entry?', [
@@ -83,7 +75,7 @@ export function EntryCard({ entry, onPress, onDelete }: EntryCardProps) {
           onPress={() => onPress(entry)}
           onLongPress={handleLongPress}
         >
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>{entry.title}</Text>
           {preview ? (
             <Text style={styles.body} numberOfLines={4}>{preview}</Text>
           ) : null}

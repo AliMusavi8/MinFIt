@@ -102,12 +102,16 @@ export function StreakRing({
             <View key={day.dateStr} style={styles.dayColumn}>
               <View style={styles.dayCircleSlot}>
                 {day.isCheckedIn && <View style={styles.dayCircleGlow} />}
+                {!day.isCheckedIn && !day.isToday && !day.isFuture && (
+                  <View style={styles.dayCircleMissedGlow} />
+                )}
                 <View
                   style={[
                     styles.dayCircle,
                     day.isCheckedIn && styles.dayCircleChecked,
                     day.isToday && !day.isCheckedIn && styles.dayCircleToday,
                     day.isFuture && !day.isCheckedIn && styles.dayCircleFuture,
+                    !day.isCheckedIn && !day.isToday && !day.isFuture && styles.dayCircleMissed,
                   ]}
                 >
                   {day.isCheckedIn && (
@@ -122,6 +126,7 @@ export function StreakRing({
                 style={[
                   styles.dayLabel,
                   day.isToday && styles.dayLabelToday,
+                  !day.isCheckedIn && !day.isToday && !day.isFuture && styles.dayLabelMissed,
                 ]}
               >
                 {day.label}
@@ -199,6 +204,13 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     backgroundColor: 'rgba(85, 234, 77, 0.14)',
   },
+  dayCircleMissedGlow: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.dangerMuted,
+  },
   dayCircle: {
     width: 32,
     height: 32,
@@ -221,6 +233,10 @@ const styles = StyleSheet.create({
   dayCircleFuture: {
     backgroundColor: colors.surfaceContainerHighest,
     opacity: 0.4,
+  },
+  dayCircleMissed: {
+    backgroundColor: colors.danger,
+    opacity: 1,
   },
   todayDot: {
     width: 26,
@@ -246,6 +262,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
     fontFamily: fonts.bold,
+  },
+  dayLabelMissed: {
+    color: colors.danger,
   },
 
   // Best Streak card

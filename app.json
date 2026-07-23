@@ -4,7 +4,7 @@
     "slug": "minfit",
     "version": "0.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/Mobile_app_icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "minfit",
     "ios": {
@@ -12,9 +12,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#00000E",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
+        "backgroundColor": "#081A35",
+        "foregroundImage": "./assets/Mobile_app_icon.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,

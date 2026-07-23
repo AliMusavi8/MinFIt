@@ -15,7 +15,12 @@ export async function getEntries(): Promise<JournalEntry[]> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.ENTRIES);
     if (!raw) return [];
-    return JSON.parse(raw) as JournalEntry[];
+    const parsed = JSON.parse(raw) as Array<JournalEntry | LegacyJournalEntry>;
+    const entries = parsed.map(migrateEntry);
+    if (entries.some((entry, index) => entry !== parsed[index])) {
+      await saveEntries(entries);
+    }
+    return entries;
   } catch {
     return [];
   }
@@ -34,7 +39,7 @@ export async function addEntry(entry: JournalEntry): Promise<JournalEntry[]> {
 
 export async function updateEntry(
   id: string,
-  updates: Partial<Pick<JournalEntry, 'content'>>
+  updates: Partial<Pick<JournalEntry, 'title' | 'body'>>
 ): Promise<JournalEntry[]> {
   const entries = await getEntries();
   const idx = entries.findIndex((e) => e.id === id);
@@ -47,6 +52,31 @@ export async function updateEntry(
     await saveEntries(entries);
   }
   return entries;
+}
+
+interface LegacyJournalEntry {
+  id: string;
+  date: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function migrateEntry(entry: JournalEntry | LegacyJournalEntry): JournalEntry {
+  if ('title' in entry && 'body' in entry) return entry;
+
+  const content = entry.content
+    .split('const sendContent')[0]
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/(?:div|p|h[1-6]|li)>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+  const [title = 'Untitled', ...bodyLines] = content.split('\n').filter(Boolean);
+
+  return { ...entry, title, body: bodyLines.join('\n').trim() };
 }
 
 export async function deleteEntry(id: string): Promise<JournalEntry[]> {
@@ -104,7 +134,8 @@ function isJournalEntry(value: unknown): value is JournalEntry {
   const entry = value as JournalEntry;
   return typeof entry.id === 'string'
     && typeof entry.date === 'string'
-    && typeof entry.content === 'string'
+    && ((typeof entry.title === 'string' && typeof entry.body === 'string')
+      || typeof (entry as unknown as LegacyJournalEntry).content === 'string')
     && typeof entry.createdAt === 'string'
     && typeof entry.updatedAt === 'string';
 }

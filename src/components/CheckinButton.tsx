@@ -100,6 +100,7 @@ export function CheckinButton({ isCheckedIn, onPress, streakCount }: CheckinButt
       <TouchableOpacity
         onPressIn={startHold}
         onPressOut={cancelHold}
+        pressRetentionOffset={32}
         activeOpacity={0.95}
       >
         <Animated.View
