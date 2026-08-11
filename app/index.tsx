@@ -4,6 +4,7 @@
 // best streak badge, monthly consistency calendar.
 
 import React, { useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -19,6 +20,7 @@ import { HeatmapCalendar } from '../src/components/HeatmapCalendar';
 import { ProfileAvatar } from '../src/components/ProfileAvatar';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { streak, liveStreak, isCheckedInToday, checkin } = useStreak();
   const [calendarScrollReserve, setCalendarScrollReserve] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -105,6 +107,7 @@ export default function HomeScreen() {
             checkinHistory={streak.checkinHistory}
             onExpand={handleCalendarExpand}
             onCollapse={handleCalendarCollapse}
+            onViewYear={() => router.push('/year')}
             onLayoutChange={handleCalendarLayoutChange}
           />
         </View>

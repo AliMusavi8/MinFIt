@@ -202,11 +202,13 @@ function TabButton({
 }
 
 function AppTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+  if (state.routes[state.index]?.name === 'year') return null;
+
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
       <View style={styles.tabBarContent}>
-        {state.routes.map((route, index) => {
-          const focused = state.index === index;
+        {state.routes.filter((route) => route.name !== 'year').map((route) => {
+          const focused = state.routes[state.index]?.key === route.key;
           const { options } = descriptors[route.key];
           const label = tabLabels[route.name] ?? options.title ?? route.name;
 
@@ -284,6 +286,12 @@ export default function RootLayout() {
           name="settings"
           options={{
             title: 'Settings',
+          }}
+        />
+        <Tabs.Screen
+          name="year"
+          options={{
+            href: null,
           }}
         />
       </Tabs>

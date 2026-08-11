@@ -14,6 +14,7 @@ interface HeatmapCalendarProps {
   weeks?: number;
   onExpand?: () => void;
   onCollapse?: () => void;
+  onViewYear?: () => void;
   onLayoutChange?: (height: number, isExpanded: boolean) => void;
 }
 
@@ -23,6 +24,7 @@ export function HeatmapCalendar({
   checkinHistory,
   onExpand,
   onCollapse,
+  onViewYear,
   onLayoutChange,
 }: HeatmapCalendarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -120,40 +122,82 @@ export function HeatmapCalendar({
         {/* Calendar grid */}
         {weeksList.map((week, wi) => (
           <View key={wi} style={styles.weekRow}>
-            {week.map((cell, ci) => (
-              <View key={ci} style={styles.cellWrapper}>
-                {cell.day !== null ? (
-                  <>
-                    {cell.isActive && <View style={styles.cellGlow} />}
-                    <View
-                      style={[
-                        styles.cell,
-                        cell.isActive && styles.cellActive,
-                        cell.isToday && !cell.isActive && styles.cellToday,
-                        cell.isFuture && !cell.isActive && styles.cellFuture,
-                        !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellMissed,
-                      ]}
-                    >
-                      <Text
+            {week.map((cell, ci) => {
+              const showYearButton = Boolean(
+                onViewYear
+                && wi === weeksList.length - 1
+                && ci === week.length - 1
+                && cell.day === null
+                && week[ci - 1]?.day === null
+              );
+
+              return (
+                <View key={ci} style={styles.cellWrapper}>
+                  {cell.day !== null ? (
+                    <>
+                      {cell.isActive && <View style={styles.cellGlow} />}
+                      <View
                         style={[
-                          styles.cellText,
-                          cell.isActive && styles.cellTextActive,
-                          cell.isToday && !cell.isActive && styles.cellTextToday,
-                          cell.isFuture && !cell.isActive && styles.cellTextFuture,
-                          !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
+                          styles.cell,
+                          cell.isActive && styles.cellActive,
+                          cell.isToday && !cell.isActive && styles.cellToday,
+                          cell.isFuture && !cell.isActive && styles.cellFuture,
+                          !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellMissed,
                         ]}
                       >
-                        {cell.day}
-                      </Text>
-                    </View>
-                  </>
+                        <Text
+                          style={[
+                            styles.cellText,
+                            cell.isActive && styles.cellTextActive,
+                            cell.isToday && !cell.isActive && styles.cellTextToday,
+                            cell.isFuture && !cell.isActive && styles.cellTextFuture,
+                            !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
+                          ]}
+                        >
+                          {cell.day}
+                        </Text>
+                      </View>
+                    </>
+                  ) : showYearButton ? (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="View yearly consistency"
+                      activeOpacity={0.7}
+                      style={styles.yearButton}
+                      onPress={onViewYear}
+                    >
+                      <Text style={styles.yearButtonText}>12 MONTHS</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.cellEmpty} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        ))}
+
+        {onViewYear && weeksList[weeksList.length - 1][5].day !== null && (
+          <View style={styles.weekRow}>
+            {DAY_HEADERS.map((_, index) => (
+              <View key={index} style={styles.cellWrapper}>
+                {index === 6 ? (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="View yearly consistency"
+                    activeOpacity={0.7}
+                    style={styles.yearButton}
+                    onPress={onViewYear}
+                  >
+                    <Text style={styles.yearButtonText}>12 MONTHS</Text>
+                  </TouchableOpacity>
                 ) : (
                   <View style={styles.cellEmpty} />
                 )}
               </View>
             ))}
           </View>
-        ))}
+        )}
       </View>
     );
   };
@@ -355,6 +399,23 @@ const styles = StyleSheet.create({
   cellEmpty: {
     width: CELL_SIZE,
     height: CELL_SIZE,
+  },
+  yearButton: {
+    width: CELL_SIZE * 2 + spacing.sm,
+    height: CELL_SIZE,
+    transform: [{ translateX: -(CELL_SIZE + spacing.sm) / 2 }],
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(85, 234, 77, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(85, 234, 77, 0.35)',
+  },
+  yearButtonText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    letterSpacing: 0.4,
   },
   cellText: {
     fontSize: 11,
