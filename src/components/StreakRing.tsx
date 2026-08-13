@@ -10,6 +10,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import dayjs from 'dayjs';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { colors, fonts, typography, spacing, radius } from '../lib/theme';
+import { LiquidFill } from './LiquidFill';
 
 // Custom SVG Icons to match reference designs
 function FlameIcon({ size = 32, color = colors.primary }: { size?: number; color?: string }) {
@@ -50,8 +51,11 @@ function AwardIcon({ size = 32, color = colors.bg, bgCircleColor = colors.cream 
 
 interface StreakRingProps {
   longestStreak: number;
+  secondaryLongestStreak: number;
+  secondaryHabitName: string;
   isCheckedIn: boolean;
   checkinHistory?: string[];
+  secondaryCheckinHistory?: string[];
 }
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -60,31 +64,38 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
  * Get the dates for the current week (Mon–Sun) and determine
  * which ones have been checked in.
  */
-function getWeekStatus(checkinHistory: string[]) {
+function getWeekStatus(checkinHistory: string[], secondaryCheckinHistory: string[]) {
   const today = dayjs();
   const currentDayOfWeek = today.day(); // 0=Sun
   const mondayOffset = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
   const monday = today.subtract(mondayOffset, 'day');
 
   const historySet = new Set(checkinHistory);
+  const secondaryHistorySet = new Set(secondaryCheckinHistory);
 
   return DAY_LABELS.map((label, i) => {
     const date = monday.add(i, 'day');
     const dateStr = date.format('YYYY-MM-DD');
     const isToday = dateStr === today.format('YYYY-MM-DD');
     const isFuture = date.isAfter(today, 'day');
-    const isCheckedIn = historySet.has(dateStr);
+    const primaryIsCheckedIn = historySet.has(dateStr);
+    const secondaryIsCheckedIn = secondaryHistorySet.has(dateStr);
+    const completionCount = Number(primaryIsCheckedIn) + Number(secondaryIsCheckedIn);
+    const isCheckedIn = completionCount > 0;
 
-    return { label, dateStr, isToday, isFuture, isCheckedIn };
+    return { label, dateStr, isToday, isFuture, isCheckedIn, isComplete: completionCount === 2, primaryIsCheckedIn };
   });
 }
 
 export function StreakRing({
   longestStreak,
+  secondaryLongestStreak,
+  secondaryHabitName,
   isCheckedIn,
   checkinHistory = [],
+  secondaryCheckinHistory = [],
 }: StreakRingProps) {
-  const weekStatus = getWeekStatus(checkinHistory);
+  const weekStatus = getWeekStatus(checkinHistory, secondaryCheckinHistory);
 
   return (
     <View style={styles.container}>
@@ -108,14 +119,22 @@ export function StreakRing({
                 <View
                   style={[
                     styles.dayCircle,
-                    day.isCheckedIn && styles.dayCircleChecked,
+                    day.isCheckedIn && styles.dayCircleActive,
                     day.isToday && !day.isCheckedIn && styles.dayCircleToday,
                     day.isFuture && !day.isCheckedIn && styles.dayCircleFuture,
                     !day.isCheckedIn && !day.isToday && !day.isFuture && styles.dayCircleMissed,
                   ]}
                 >
                   {day.isCheckedIn && (
-                    <Text style={styles.checkmark}>✓</Text>
+                    <LiquidFill
+                      borderRadius={16}
+                      position={day.isComplete ? 'full' : day.primaryIsCheckedIn ? 'bottom' : 'top'}
+                    />
+                  )}
+                  {day.isComplete && (
+                    <View collapsable={false} pointerEvents="none" style={styles.dayForeground}>
+                      <Text style={styles.checkmark}>✓</Text>
+                    </View>
                   )}
                   {day.isToday && !day.isCheckedIn && (
                     <View style={styles.todayDot} />
@@ -138,12 +157,19 @@ export function StreakRing({
 
       {/* Best Streak Badge */}
       <View style={styles.bestCard}>
-        <View>
-          <Text style={styles.bestLabel}>BEST STREAK</Text>
-          <Text style={styles.bestValue}>{longestStreak} Days</Text>
+        <View style={styles.bestStats}>
+          <Text style={[styles.bestLabel, styles.bestHeading]}>BEST STREAK</Text>
+          <View style={styles.bestRow}>
+            <Text numberOfLines={1} style={styles.bestHabitLabel}>FITNESS</Text>
+            <Text style={styles.bestValue}>{longestStreak} Days</Text>
+          </View>
+          <View style={styles.bestRow}>
+            <Text numberOfLines={1} style={styles.bestHabitLabel}>{secondaryHabitName}</Text>
+            <Text style={styles.bestValue}>{secondaryLongestStreak} Days</Text>
+          </View>
         </View>
         <View style={styles.bestBadge}>
-          <AwardIcon size={32} color={colors.bg} bgCircleColor={colors.cream} />
+          <AwardIcon size={16} color={colors.bg} bgCircleColor={colors.cream} />
         </View>
       </View>
     </View>
@@ -220,8 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayCircleChecked: {
-    backgroundColor: colors.primary,
+  dayCircleActive: {
     opacity: 1,
   },
   dayCircleToday: {
@@ -244,6 +269,17 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1.2,
     borderColor: 'rgba(85, 234, 77, 0.65)',
+  },
+  dayForeground: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    elevation: 2,
   },
   checkmark: {
     fontSize: 14,
@@ -275,9 +311,25 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(85, 234, 77, 0.2)',
     borderRadius: radius.xl,
     padding: spacing.lg,
+    position: 'relative',
+  },
+  bestStats: {
+    gap: spacing.md,
+  },
+  bestRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  bestHabitLabel: {
+    flex: 1,
+    fontSize: typography.md,
+    color: colors.primary,
+    fontFamily: fonts.medium,
+    fontWeight: '500',
+    letterSpacing: -0.5,
+    textTransform: 'uppercase',
   },
   bestLabel: {
     fontSize: 12,
@@ -286,17 +338,27 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
+  bestHeading: {
+    paddingRight: 40,
+    marginBottom: spacing.md,
+  },
   bestValue: {
-    fontSize: typography.headlineMd,
+    minWidth: 72,
+    fontSize: typography.md,
     color: '#1b5e20', // Darker forest green matching the reference design
     fontWeight: '500',
     fontFamily: fonts.medium,
     letterSpacing: -0.5,
+    flexShrink: 0,
+    textAlign: 'right',
   },
   bestBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.lg,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',

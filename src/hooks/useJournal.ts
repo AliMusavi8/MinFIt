@@ -49,17 +49,6 @@ export function useJournal() {
     [entries]
   );
 
-  const searchEntries = useCallback(
-    (query: string) => {
-      if (!query.trim()) return entries;
-      const lower = query.toLowerCase();
-      return entries.filter((e) =>
-        e.title.toLowerCase().includes(lower) || e.body.toLowerCase().includes(lower)
-      );
-    },
-    [entries]
-  );
-
   return {
     entries,
     loading,
@@ -67,6 +56,5 @@ export function useJournal() {
     updateEntry,
     deleteEntry,
     getEntryForDate,
-    searchEntries,
   };
 }

@@ -17,18 +17,25 @@ import { useStreak } from '../src/hooks/useStreak';
 import { StreakRing } from '../src/components/StreakRing';
 import { CheckinButton } from '../src/components/CheckinButton';
 import { HeatmapCalendar } from '../src/components/HeatmapCalendar';
-import { ProfileAvatar } from '../src/components/ProfileAvatar';
+import { HabitId } from '../src/types';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { streak, liveStreak, isCheckedInToday, checkin } = useStreak();
+  const {
+    streak,
+    liveStreak,
+    secondaryLiveStreak,
+    isCheckedInToday,
+    secondaryIsCheckedInToday,
+    checkin,
+  } = useStreak();
   const [calendarScrollReserve, setCalendarScrollReserve] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const calendarY = useRef(0);
   const calendarHeights = useRef({ collapsed: 0, expanded: 0 });
 
-  const handleCheckin = async () => {
-    await checkin();
+  const handleCheckin = async (habit: HabitId) => {
+    await checkin(habit);
   };
 
   const handleCalendarExpand = () => {
@@ -70,23 +77,16 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.tagline}>Minimal Fitness Tracking</Text>
           </View>
-          <ProfileAvatar />
         </View>
-
-        {/* Check-in completed banner */}
-        {isCheckedInToday && (
-          <View style={styles.bannerContainer}>
-            <View style={styles.banner}>
-              <Text style={styles.bannerText}>Check-in completed!</Text>
-            </View>
-          </View>
-        )}
 
         {/* Central Orb */}
         <CheckinButton
-          isCheckedIn={isCheckedInToday}
-          onPress={handleCheckin}
-          streakCount={liveStreak}
+          primaryIsCheckedIn={isCheckedInToday}
+          secondaryIsCheckedIn={secondaryIsCheckedInToday}
+          onCheckin={handleCheckin}
+          primaryStreakCount={liveStreak}
+          secondaryStreakCount={secondaryLiveStreak}
+          secondaryHabitName={streak.secondaryHabitName}
         />
 
         {/* Streak Card + Best Streak */}
@@ -94,7 +94,10 @@ export default function HomeScreen() {
           <StreakRing
             longestStreak={streak.longestStreak}
             isCheckedIn={isCheckedInToday}
+            secondaryLongestStreak={streak.secondaryLongestStreak}
+            secondaryHabitName={streak.secondaryHabitName}
             checkinHistory={streak.checkinHistory}
+            secondaryCheckinHistory={streak.secondaryCheckinHistory}
           />
         </View>
 
@@ -105,6 +108,7 @@ export default function HomeScreen() {
         >
           <HeatmapCalendar
             checkinHistory={streak.checkinHistory}
+            secondaryCheckinHistory={streak.secondaryCheckinHistory}
             onExpand={handleCalendarExpand}
             onCollapse={handleCalendarCollapse}
             onViewYear={() => router.push('/year')}
@@ -160,27 +164,6 @@ const styles = StyleSheet.create({
     fontSize: typography.xs,
     color: colors.textMuted,
     fontFamily: fonts.regular,
-  },
-
-  // Check-in banner
-  bannerContainer: {
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  banner: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(85, 234, 77, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(85, 234, 77, 0.15)',
-  },
-  bannerText: {
-    fontSize: typography.labelMd,
-    color: colors.primary,
-    fontWeight: '500',
-    fontFamily: fonts.medium,
-    letterSpacing: 0.5,
   },
 
   section: {

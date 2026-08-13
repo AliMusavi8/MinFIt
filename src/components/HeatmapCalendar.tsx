@@ -8,9 +8,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation } from 'react-native';
 import dayjs from 'dayjs';
 import { colors, fonts, typography, spacing, radius } from '../lib/theme';
+import { LiquidFill } from './LiquidFill';
 
 interface HeatmapCalendarProps {
   checkinHistory: string[];
+  secondaryCheckinHistory?: string[];
   weeks?: number;
   onExpand?: () => void;
   onCollapse?: () => void;
@@ -22,6 +24,7 @@ const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export function HeatmapCalendar({
   checkinHistory,
+  secondaryCheckinHistory = [],
   onExpand,
   onCollapse,
   onViewYear,
@@ -30,6 +33,7 @@ export function HeatmapCalendar({
   const [isExpanded, setIsExpanded] = useState(false);
   const today = dayjs();
   const historySet = new Set(checkinHistory);
+  const secondaryHistorySet = new Set(secondaryCheckinHistory);
   const monthName = today.format('MMMM');
   const year = today.format('YYYY');
 
@@ -68,23 +72,26 @@ export function HeatmapCalendar({
       day: number | null;
       dateStr: string | null;
       isActive: boolean;
+      isComplete: boolean;
       isToday: boolean;
       isFuture: boolean;
     }> = [];
 
     // Empty cells before first day
     for (let i = 0; i < firstDayOfMonth; i++) {
-      cells.push({ day: null, dateStr: null, isActive: false, isToday: false, isFuture: false });
+      cells.push({ day: null, dateStr: null, isActive: false, isComplete: false, isToday: false, isFuture: false });
     }
 
     // Day cells
     for (let d = 1; d <= daysInMonth; d++) {
       const date = targetMonth.startOf('month').add(d - 1, 'day');
       const dateStr = date.format('YYYY-MM-DD');
+      const completionCount = Number(historySet.has(dateStr)) + Number(secondaryHistorySet.has(dateStr));
       cells.push({
         day: d,
         dateStr,
-        isActive: historySet.has(dateStr),
+        isActive: completionCount > 0,
+        isComplete: completionCount === 2,
         isToday: dateStr === dayjs().format('YYYY-MM-DD'),
         isFuture: date.isAfter(dayjs(), 'day'),
       });
@@ -92,7 +99,7 @@ export function HeatmapCalendar({
 
     // Pad to complete last row
     while (cells.length % 7 !== 0) {
-      cells.push({ day: null, dateStr: null, isActive: false, isToday: false, isFuture: false });
+      cells.push({ day: null, dateStr: null, isActive: false, isComplete: false, isToday: false, isFuture: false });
     }
 
     // Split into weeks
@@ -139,23 +146,35 @@ export function HeatmapCalendar({
                       <View
                         style={[
                           styles.cell,
-                          cell.isActive && styles.cellActive,
-                          cell.isToday && !cell.isActive && styles.cellToday,
                           cell.isFuture && !cell.isActive && styles.cellFuture,
                           !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellMissed,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.cellText,
-                            cell.isActive && styles.cellTextActive,
-                            cell.isToday && !cell.isActive && styles.cellTextToday,
-                            cell.isFuture && !cell.isActive && styles.cellTextFuture,
-                            !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
-                          ]}
-                        >
-                          {cell.day}
-                        </Text>
+                        {cell.isToday && !cell.isActive && (
+                          <View collapsable={false} pointerEvents="none" style={styles.cellToday} />
+                        )}
+                        {cell.isActive && (
+                          <LiquidFill
+                            borderRadius={8}
+                            position={cell.isComplete
+                              ? 'full'
+                              : historySet.has(cell.dateStr!) ? 'bottom' : 'top'}
+                          />
+                        )}
+                        <View collapsable={false} pointerEvents="none" style={styles.cellForeground}>
+                          <Text
+                            style={[
+                              styles.cellText,
+                              cell.isComplete && styles.cellTextActive,
+                              cell.isActive && !cell.isComplete && styles.cellTextHalf,
+                              cell.isToday && !cell.isActive && styles.cellTextToday,
+                              cell.isFuture && !cell.isActive && styles.cellTextFuture,
+                              !cell.isActive && !cell.isToday && !cell.isFuture && styles.cellTextMissed,
+                            ]}
+                          >
+                            {cell.day}
+                          </Text>
+                        </View>
                       </View>
                     </>
                   ) : showYearButton ? (
@@ -230,8 +249,7 @@ export function HeatmapCalendar({
             styles.expandButtonText,
             isExpanded && styles.collapseButtonText,
           ]}>
-            {isExpanded ? 'COLLAPSE' : 'EXPAND'}{'  '}
-            <Text style={styles.arrowIcon}>{isExpanded ? '↙' : '↗'}</Text>
+            {isExpanded ? 'COLLAPSE' : 'EXPAND'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -313,14 +331,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: fonts.bold,
     letterSpacing: 1,
+    textAlign: 'center',
   },
   collapseButtonText: {
     color: colors.danger,
-  },
-  arrowIcon: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    fontFamily: fonts.bold,
   },
   monthSection: {
     marginBottom: spacing.md,
@@ -370,9 +384,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cellActive: {
-    backgroundColor: colors.primary,
-  },
   cellGlow: {
     position: 'absolute',
     width: CELL_SIZE + 6,
@@ -381,9 +392,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(85, 234, 77, 0.14)',
   },
   cellToday: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: colors.primary,
-    backgroundColor: 'transparent',
   },
   cellFuture: {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
@@ -417,6 +433,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     letterSpacing: 0.4,
   },
+  cellForeground: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    elevation: 1,
+  },
   cellText: {
     fontSize: 11,
     fontWeight: '600',
@@ -426,6 +453,11 @@ const styles = StyleSheet.create({
   cellTextActive: {
     color: '#00000E', // Dark text on active green
     fontWeight: '700',
+  },
+  cellTextHalf: {
+    color: '#00000E',
+    fontWeight: '700',
+    zIndex: 1,
   },
   cellTextToday: {
     color: colors.primary,

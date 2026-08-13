@@ -13,8 +13,15 @@ export interface StreakData {
   currentStreak: number;
   longestStreak: number;
   lastCheckinDate: string | null; // YYYY-MM-DD or null
-  checkinHistory: string[]; // Array of YYYY-MM-DD dates
+  checkinHistory: string[]; // Primary habit dates
+  secondaryCurrentStreak: number;
+  secondaryLongestStreak: number;
+  secondaryLastCheckinDate: string | null;
+  secondaryCheckinHistory: string[];
+  secondaryHabitName: string;
 }
+
+export type HabitId = 'primary' | 'secondary';
 
 export interface MinFitBackup {
   version: 1;

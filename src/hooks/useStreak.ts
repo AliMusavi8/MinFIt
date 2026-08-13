@@ -1,30 +1,40 @@
 // ─── MinFit — Streak Hook ───────────────────────────────
 
-import { useState, useEffect, useCallback } from 'react';
-import { StreakData } from '../types';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { HabitId, StreakData } from '../types';
 import * as storage from '../lib/storage';
 import { processCheckin, hasCheckedInToday, getLiveStreak } from '../lib/streak';
 
+const INITIAL_STREAK: StreakData = {
+  currentStreak: 0,
+  longestStreak: 0,
+  lastCheckinDate: null,
+  checkinHistory: [],
+  secondaryCurrentStreak: 0,
+  secondaryLongestStreak: 0,
+  secondaryLastCheckinDate: null,
+  secondaryCheckinHistory: [],
+  secondaryHabitName: storage.DEFAULT_SECONDARY_HABIT_NAME,
+};
+
 export function useStreak() {
-  const [streak, setStreak] = useState<StreakData>({
-    currentStreak: 0,
-    longestStreak: 0,
-    lastCheckinDate: null,
-    checkinHistory: [],
-  });
+  const [streak, setStreak] = useState<StreakData>(INITIAL_STREAK);
   const [loading, setLoading] = useState(true);
 
-  // Load streak data on mount
-  useEffect(() => {
-    (async () => {
-      const data = await storage.getStreak();
-      setStreak(data);
-      setLoading(false);
-    })();
-  }, []);
+  useFocusEffect(useCallback(() => {
+    let isActive = true;
+    storage.getStreak().then((data) => {
+      if (isActive) {
+        setStreak(data);
+        setLoading(false);
+      }
+    });
+    return () => { isActive = false; };
+  }, []));
 
-  const checkin = useCallback(async () => {
-    const updated = processCheckin(streak);
+  const checkin = useCallback(async (habit: HabitId = 'primary') => {
+    const updated = processCheckin(streak, habit);
     await storage.saveStreak(updated);
     setStreak(updated);
     return updated;
@@ -41,6 +51,8 @@ export function useStreak() {
     checkin,
     reset,
     isCheckedInToday: hasCheckedInToday(streak),
+    secondaryIsCheckedInToday: hasCheckedInToday(streak, 'secondary'),
     liveStreak: getLiveStreak(streak),
+    secondaryLiveStreak: getLiveStreak(streak, 'secondary'),
   };
 }

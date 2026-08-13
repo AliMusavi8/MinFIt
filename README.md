@@ -1,51 +1,55 @@
-# MinFit
+<div align="center">
+  <kbd>
+    <img src="./assets/Mobile_app_icon.png" alt="MinFit logo" width="120" />
+  </kbd>
 
+  <h1>MinFit</h1>
 
+  <p>A minimal, private fitness tracker mobile app.</p>
 
-MinFit is a minimal, private-by-default fitness companion for building consistency. It requires no account signup so you can begin as soon as you download it.
+  <p>
+    <a href="https://github.com/AliMusavi8/MinFIt/actions/workflows/android-release.yml"><img src="https://img.shields.io/github/actions/workflow/status/AliMusavi8/MinFIt/android-release.yml?branch=main&style=flat-square&label=build" alt="Build status" /></a>
+    <a href="https://github.com/AliMusavi8/MinFIt/releases"><img src="https://img.shields.io/badge/platform-Android-55EA4D?style=flat-square&logo=android&logoColor=000" alt="Android" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-55EA4D?style=flat-square" alt="MIT license" /></a>
+  </p>
 
-<p align="center">
-  <img src="docs/images/showcase-1.png" alt="MinFit app showcase" width="260" />
-</p>
+  <p>
+    <a href="#features">Features</a> ·
+    <a href="#tech-stack">Tech stack</a>
+  </p>
+</div>
+
+---
+
+<table>
+  <tr>
+    <td width="50%"><img src="./assets/minfit-daily-showcase.png" alt="MinFit daily tracking screen" /></td>
+    <td width="50%"><img src="./assets/minfit-consistency-showcase.png" alt="MinFit consistency screen" /></td>
+  </tr>
+</table>
+
+MinFit helps you build two daily habits without accounts, subscriptions, or unnecessary complexity. Your check-ins, streaks, and notes stay on your device.
 
 ## Features
 
-- One-tap daily check-ins with live and longest-streak tracking
-- Monthly consistency calendar
-- Private on-device journal with search and rich-text editing
-- Settings for app updates and clearing local data
+- Two-habit check-ins through a swipeable, hold-to-complete orb
+- Separate current and best streaks for each habit
+- Weekly, monthly, and yearly consistency views
+- Editable check-in history with half- and full-day progress
+- Private on-device notes with backup and restore
 
 ## Tech stack
 
-| Area | Technology |
+| Layer | Technology |
 | --- | --- |
-| Framework | Expo SDK 57 |
-| UI | React 19, React Native 0.86 |
+| Framework | Expo |
+| UI | React Native |
 | Language | TypeScript |
 | Navigation | Expo Router |
 | Local storage | AsyncStorage |
-| Utilities | Day.js, React Native SVG, React Native WebView |
-| Typography | Nippo (Fontshare) |
-
-## Run locally
-
-```bash
-npm install
-npx expo start
-```
-
-Use Expo Go or an Android/iOS simulator to open the app. `npm run typecheck` verifies the TypeScript project.
-
-
-## Project structure
-
-```text
-app/                 Expo Router screens
-src/                 components, hooks, storage, theme, and types
-assets/              application icons and local font assets
-docs/images/         README images
-```
+| Animation | React Native Reanimated |
+| CI/CD | GitHub Actions |
 
 ## License
 
-This repository is licensed under the [MIT License](LICENSE). Third-party font files remain subject to their own Fontshare license.
+MinFit is available under the [MIT License](LICENSE). Nippo remains subject to its separate Fontshare license.

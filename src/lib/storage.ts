@@ -2,6 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { JournalEntry, MinFitBackup, StreakData } from '../types';
+import { calculateStreakStats } from './streak';
 
 const KEYS = {
 // Legacy key names are retained so existing MinFit data remains available after the rename.
@@ -88,18 +89,51 @@ export async function deleteEntry(id: string): Promise<JournalEntry[]> {
 
 // ─── Streak Data ────────────────────
 
+export const DEFAULT_SECONDARY_HABIT_NAME = 'SECOND HABIT';
+
 const DEFAULT_STREAK: StreakData = {
   currentStreak: 0,
   longestStreak: 0,
   lastCheckinDate: null,
   checkinHistory: [],
+  secondaryCurrentStreak: 0,
+  secondaryLongestStreak: 0,
+  secondaryLastCheckinDate: null,
+  secondaryCheckinHistory: [],
+  secondaryHabitName: DEFAULT_SECONDARY_HABIT_NAME,
 };
+
+function migrateStreak(value: Partial<StreakData>): StreakData {
+  return {
+    currentStreak: Number.isFinite(value.currentStreak) ? value.currentStreak! : 0,
+    longestStreak: Number.isFinite(value.longestStreak) ? value.longestStreak! : 0,
+    lastCheckinDate: typeof value.lastCheckinDate === 'string' ? value.lastCheckinDate : null,
+    checkinHistory: Array.isArray(value.checkinHistory)
+      ? value.checkinHistory.filter((date): date is string => typeof date === 'string')
+      : [],
+    secondaryCurrentStreak: Number.isFinite(value.secondaryCurrentStreak)
+      ? value.secondaryCurrentStreak!
+      : 0,
+    secondaryLongestStreak: Number.isFinite(value.secondaryLongestStreak)
+      ? value.secondaryLongestStreak!
+      : 0,
+    secondaryLastCheckinDate: typeof value.secondaryLastCheckinDate === 'string'
+      ? value.secondaryLastCheckinDate
+      : null,
+    secondaryCheckinHistory: Array.isArray(value.secondaryCheckinHistory)
+      ? value.secondaryCheckinHistory.filter((date): date is string => typeof date === 'string')
+      : [],
+    secondaryHabitName: typeof value.secondaryHabitName === 'string' && value.secondaryHabitName.trim()
+      ? value.secondaryHabitName.trim().slice(0, 18)
+      : DEFAULT_SECONDARY_HABIT_NAME,
+  };
+}
 
 export async function getStreak(): Promise<StreakData> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.STREAK);
     if (!raw) return { ...DEFAULT_STREAK };
-    return JSON.parse(raw) as StreakData;
+    return migrateStreak(JSON.parse(raw) as Partial<StreakData>);
   } catch {
     return { ...DEFAULT_STREAK };
   }
@@ -110,9 +144,42 @@ export async function saveStreak(streak: StreakData): Promise<void> {
 }
 
 export async function resetStreak(): Promise<StreakData> {
-  const streak = { ...DEFAULT_STREAK };
+  const current = await getStreak();
+  const streak = { ...DEFAULT_STREAK, secondaryHabitName: current.secondaryHabitName };
   await saveStreak(streak);
   return streak;
+}
+
+export async function saveSecondaryHabitName(name: string): Promise<string> {
+  const normalized = name.trim().slice(0, 18) || DEFAULT_SECONDARY_HABIT_NAME;
+  const streak = await getStreak();
+  await saveStreak({ ...streak, secondaryHabitName: normalized });
+  return normalized;
+}
+
+export async function saveCheckinHistories(
+  checkinHistory: string[],
+  secondaryCheckinHistory: string[],
+): Promise<StreakData> {
+  const streak = await getStreak();
+  const primaryHistory = [...new Set(checkinHistory)].sort();
+  const secondaryHistory = [...new Set(secondaryCheckinHistory)].sort();
+  const primaryStats = calculateStreakStats(primaryHistory);
+  const secondaryStats = calculateStreakStats(secondaryHistory);
+  const updated: StreakData = {
+    ...streak,
+    currentStreak: primaryStats.currentStreak,
+    longestStreak: primaryStats.longestStreak,
+    lastCheckinDate: primaryStats.lastCheckinDate,
+    checkinHistory: primaryHistory,
+    secondaryCurrentStreak: secondaryStats.currentStreak,
+    secondaryLongestStreak: secondaryStats.longestStreak,
+    secondaryLastCheckinDate: secondaryStats.lastCheckinDate,
+    secondaryCheckinHistory: secondaryHistory,
+  };
+
+  await saveStreak(updated);
+  return updated;
 }
 
 export async function clearMinFitData(): Promise<void> {
@@ -147,7 +214,16 @@ function isStreakData(value: unknown): value is StreakData {
     && Number.isFinite(streak.longestStreak)
     && (streak.lastCheckinDate === null || typeof streak.lastCheckinDate === 'string')
     && Array.isArray(streak.checkinHistory)
-    && streak.checkinHistory.every((date) => typeof date === 'string');
+    && streak.checkinHistory.every((date) => typeof date === 'string')
+    && (streak.secondaryCurrentStreak === undefined || Number.isFinite(streak.secondaryCurrentStreak))
+    && (streak.secondaryLongestStreak === undefined || Number.isFinite(streak.secondaryLongestStreak))
+    && (streak.secondaryLastCheckinDate === undefined
+      || streak.secondaryLastCheckinDate === null
+      || typeof streak.secondaryLastCheckinDate === 'string')
+    && (streak.secondaryCheckinHistory === undefined
+      || (Array.isArray(streak.secondaryCheckinHistory)
+        && streak.secondaryCheckinHistory.every((date) => typeof date === 'string')))
+    && (streak.secondaryHabitName === undefined || typeof streak.secondaryHabitName === 'string');
 }
 
 function isMinFitBackup(value: unknown): value is MinFitBackup {
@@ -167,6 +243,6 @@ export async function restoreMinFitBackup(backup: unknown): Promise<void> {
 
   await AsyncStorage.multiSet([
     [KEYS.ENTRIES, JSON.stringify(backup.entries)],
-    [KEYS.STREAK, JSON.stringify(backup.streak)],
+    [KEYS.STREAK, JSON.stringify(migrateStreak(backup.streak))],
   ]);
 }

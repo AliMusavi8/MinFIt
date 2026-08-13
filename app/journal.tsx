@@ -1,7 +1,7 @@
 // ─── MinFit — Notes Screen ─────────────────────────────
 //
 // Redesigned to match reference: "Notes" branded header with
-// search icon + avatar, motivational quote, timeline-style
+// motivational quote, timeline-style
 // entry cards, reflection streak badge, and FAB for new entry.
 
 import React, { useState } from 'react';
@@ -11,24 +11,20 @@ import {
   Modal, Keyboard, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import dayjs from 'dayjs';
 import { colors, fonts, typography, spacing, radius } from '../src/lib/theme';
 import { useJournal } from '../src/hooks/useJournal';
 import { JournalEntry } from '../src/types';
 import { EntryCard } from '../src/components/EntryCard';
 import { EmptyState } from '../src/components/EmptyState';
-import { ProfileAvatar } from '../src/components/ProfileAvatar';
 
 export default function JournalScreen() {
-  const { entries, loading, addEntry, updateEntry, deleteEntry, searchEntries } = useJournal();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+  const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournal();
   const [isEditing, setIsEditing] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
-
-  const displayEntries = searchQuery ? searchEntries(searchQuery) : entries;
 
   const handleNewEntry = () => {
     setEditingEntry(null);
@@ -73,36 +69,7 @@ export default function JournalScreen() {
             <Text style={styles.brandMin}>Min</Text>
             <Text style={styles.brandFit}>Fit</Text>
           </View>
-          <View style={styles.headerRight}>
-            <Pressable onPress={() => setShowSearch(!showSearch)}>
-              <Text style={styles.searchIcon}>⌕</Text>
-            </Pressable>
-            <ProfileAvatar />
-          </View>
         </View>
-
-        {/* Search bar (toggleable) */}
-        {showSearch && (
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search notes..."
-              placeholderTextColor={colors.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-              autoFocus
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setSearchQuery('')}
-              >
-                <Text style={styles.clearText}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
 
         {/* Motivational quote */}
         <View style={styles.quoteContainer}>
@@ -116,7 +83,7 @@ export default function JournalScreen() {
 
         {/* Entries list */}
         <FlatList
-          data={displayEntries}
+          data={entries}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <EntryCard entry={item} onPress={handleEditEntry} onDelete={deleteEntry} />
@@ -155,9 +122,23 @@ export default function JournalScreen() {
           >
             <SafeAreaView style={styles.editorSafe}>
               <View style={styles.editorHeader}>
-                <Pressable onPress={handleDiscard} hitSlop={8}>
-                  <Text style={styles.editorCancel}>Cancel</Text>
-                </Pressable>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to notes"
+                  activeOpacity={0.7}
+                  style={styles.editorBackButton}
+                  onPress={handleDiscard}
+                >
+                  <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+                    <Path
+                      d="M15 18l-6-6 6-6"
+                      stroke={colors.primary}
+                      strokeWidth={2.4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                </TouchableOpacity>
                 <Text style={styles.editorDate}>
                   {editingEntry
                     ? dayjs(editingEntry.date).format('MMM D, YYYY')
@@ -227,47 +208,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: -0.5,
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  searchIcon: {
-    fontSize: 22,
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-  },
-
-  // Search
-  searchContainer: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    position: 'relative',
-  },
-  searchInput: {
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: typography.base,
-    color: colors.text,
-    fontFamily: fonts.regular,
-    borderWidth: 1,
-    borderColor: colors.borderSelf,
-  },
-  clearButton: {
-    position: 'absolute',
-    right: spacing.md,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  clearText: {
-    fontSize: typography.base,
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-  },
-
   // Quote
   quoteContainer: {
     paddingHorizontal: spacing.lg,
@@ -361,10 +301,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  editorCancel: {
-    fontSize: typography.base,
-    color: colors.textMuted,
-    fontFamily: fonts.regular,
+  editorBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.borderSelf,
   },
   editorDate: {
     fontSize: typography.sm,

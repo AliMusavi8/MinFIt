@@ -4,11 +4,13 @@
 // Application settings with toggle switches, Privacy & Export section,
 // and version badge.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Alert, ScrollView,
+  View, Text, StyleSheet, Pressable, Alert, ScrollView, TextInput,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { colors, fonts, typography, spacing, radius } from '../src/lib/theme';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
@@ -16,13 +18,28 @@ import * as Updates from 'expo-updates';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { createMinFitBackup, restoreMinFitBackup } from '../src/lib/storage';
-import { ProfileAvatar } from '../src/components/ProfileAvatar';
+import {
+  createMinFitBackup,
+  getStreak,
+  restoreMinFitBackup,
+  saveSecondaryHabitName,
+} from '../src/lib/storage';
 
 export default function SettingsScreen() {
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const router = useRouter();
   const [importing, setImporting] = useState(false);
+  const [secondaryHabitName, setSecondaryHabitName] = useState('SECOND HABIT');
+  useEffect(() => {
+    getStreak().then((streak) => setSecondaryHabitName(streak.secondaryHabitName));
+  }, []);
+
+  const handleHabitNameBlur = async () => {
+    const savedName = await saveSecondaryHabitName(secondaryHabitName);
+    setSecondaryHabitName(savedName);
+  };
+
   const appVersion = Constants.appOwnership === 'expo'
     ? Constants.expoConfig?.version
     : Application.nativeApplicationVersion;
@@ -133,7 +150,48 @@ export default function SettingsScreen() {
             <Text style={styles.brandMin}>Min</Text>
             <Text style={styles.brandFit}>Fit</Text>
           </View>
-          <ProfileAvatar />
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Important things to know"
+          style={[styles.card, styles.guideCard]}
+          onPress={() => router.push('/guide')}
+        >
+          <Text style={[styles.settingTitle, styles.guideTitle]}>Important things to know</Text>
+          <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M9 6l6 6-6 6"
+              stroke={colors.primary}
+              strokeWidth={2.4}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
+
+        {/* Habit Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>HABITS</Text>
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.rowContent}>
+                <Text style={styles.settingTitle}>Second habit name</Text>
+                <Text style={styles.settingSubtitle}>Shown on the back side of the check-in orb</Text>
+              </View>
+              <TextInput
+                accessibilityLabel="Second habit name"
+                value={secondaryHabitName}
+                onChangeText={setSecondaryHabitName}
+                onBlur={() => { void handleHabitNameBlur(); }}
+                maxLength={18}
+                selectTextOnFocus
+                autoCapitalize="words"
+                returnKeyType="done"
+                style={styles.habitInput}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Application Settings */}
@@ -271,9 +329,21 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSelf,
     overflow: 'hidden',
   },
+  guideCard: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
+    padding: spacing.md + 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   divider: {
     height: 1,
     backgroundColor: 'rgba(61, 74, 57, 0.1)',
+  },
+  guideTitle: {
+    flex: 1,
+    paddingRight: spacing.md,
   },
 
   // Setting rows
@@ -298,6 +368,19 @@ const styles = StyleSheet.create({
     color: 'rgba(188, 203, 180, 0.7)',
     marginTop: 2,
     fontFamily: fonts.regular,
+  },
+  habitInput: {
+    width: 118,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(85, 234, 77, 0.25)',
+    backgroundColor: colors.bgInput,
+    color: colors.primary,
+    fontFamily: fonts.medium,
+    fontSize: typography.xs,
+    textAlign: 'center',
   },
   actionIcon: {
     fontSize: 20,

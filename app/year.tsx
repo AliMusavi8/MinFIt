@@ -1,17 +1,29 @@
-import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import dayjs, { Dayjs } from 'dayjs';
-import { getStreak } from '../src/lib/storage';
+import { getStreak, saveCheckinHistories } from '../src/lib/storage';
 import { colors, fonts, radius, spacing } from '../src/lib/theme';
+import { LiquidFill } from '../src/components/LiquidFill';
 
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 interface CalendarCell {
   day: number | null;
   date: Dayjs | null;
+}
+
+interface MonthData {
+  key: string;
+  title: string;
+  weeks: CalendarCell[][];
+}
+
+interface MonthRow {
+  key: string;
+  months: MonthData[];
 }
 
 function getMonthCells(month: Dayjs): CalendarCell[][] {
@@ -32,22 +44,119 @@ function getMonthCells(month: Dayjs): CalendarCell[][] {
   return Array.from({ length: 6 }, (_, index) => cells.slice(index * 7, index * 7 + 7));
 }
 
+function getMonthRows(year: number): MonthRow[] {
+  const months = Array.from({ length: 12 }, (_, monthIndex) => {
+    const month = dayjs().year(year).month(monthIndex).startOf('month');
+    return {
+      key: month.format('YYYY-MM'),
+      title: month.format('MMM').toUpperCase(),
+      weeks: getMonthCells(month),
+    };
+  });
+
+  return Array.from({ length: 6 }, (_, rowIndex) => ({
+    key: String(rowIndex),
+    months: months.slice(rowIndex * 2, rowIndex * 2 + 2),
+  }));
+}
+
 export default function YearScreen() {
   const router = useRouter();
   const [checkinHistory, setCheckinHistory] = useState<string[]>([]);
+  const [secondaryCheckinHistory, setSecondaryCheckinHistory] = useState<string[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const originalHistories = useRef({ primary: [] as string[], secondary: [] as string[] });
   const today = dayjs();
   const year = today.year();
+  const monthRows = useMemo(() => getMonthRows(year), [year]);
 
   useFocusEffect(useCallback(() => {
     let isActive = true;
     getStreak().then((storedStreak) => {
-      if (isActive) setCheckinHistory(storedStreak.checkinHistory);
+      if (isActive) {
+        setCheckinHistory(storedStreak.checkinHistory);
+        setSecondaryCheckinHistory(storedStreak.secondaryCheckinHistory);
+      }
     });
     return () => { isActive = false; };
   }, []));
 
-  const historySet = new Set(checkinHistory);
-  const checkinsThisYear = [...historySet].filter((date) => dayjs(date).year() === year).length;
+  const historySet = useMemo(() => new Set(checkinHistory), [checkinHistory]);
+  const secondaryHistorySet = useMemo(
+    () => new Set(secondaryCheckinHistory),
+    [secondaryCheckinHistory],
+  );
+  const fullDaysThisYear = [...historySet].filter((date) => (
+    dayjs(date).year() === year && secondaryHistorySet.has(date)
+  )).length;
+
+  const handleEditPress = () => {
+    Alert.alert(
+      'Edit consistency?',
+      'Are you sure you want to make changes to your habit history?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          onPress: () => {
+            originalHistories.current = {
+              primary: [...checkinHistory],
+              secondary: [...secondaryCheckinHistory],
+            };
+            setIsEditing(true);
+          },
+        },
+      ],
+    );
+  };
+
+  const setDateInHistory = (history: string[], date: string, shouldInclude: boolean) => (
+    shouldInclude
+      ? [...new Set([...history, date])]
+      : history.filter((item) => item !== date)
+  );
+
+  const handleDayPress = (
+    date: Dayjs,
+    primaryIsCheckedIn: boolean,
+    secondaryIsCheckedIn: boolean,
+  ) => {
+    if (!isEditing || date.isAfter(today, 'day')) return;
+    const dateString = date.format('YYYY-MM-DD');
+
+    if (!primaryIsCheckedIn && !secondaryIsCheckedIn) {
+      setSecondaryCheckinHistory((history) => setDateInHistory(history, dateString, true));
+    } else if (!primaryIsCheckedIn && secondaryIsCheckedIn) {
+      setCheckinHistory((history) => setDateInHistory(history, dateString, true));
+      setSecondaryCheckinHistory((history) => setDateInHistory(history, dateString, false));
+    } else if (primaryIsCheckedIn && !secondaryIsCheckedIn) {
+      setSecondaryCheckinHistory((history) => setDateInHistory(history, dateString, true));
+    } else {
+      setCheckinHistory((history) => setDateInHistory(history, dateString, false));
+      setSecondaryCheckinHistory((history) => setDateInHistory(history, dateString, false));
+    }
+  };
+
+  const handleConfirm = async () => {
+    setIsSaving(true);
+    try {
+      const updated = await saveCheckinHistories(checkinHistory, secondaryCheckinHistory);
+      setCheckinHistory(updated.checkinHistory);
+      setSecondaryCheckinHistory(updated.secondaryCheckinHistory);
+      setIsEditing(false);
+    } catch {
+      Alert.alert('Could not save changes', 'Your consistency changes could not be saved. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setCheckinHistory(originalHistories.current.primary);
+    setSecondaryCheckinHistory(originalHistories.current.secondary);
+    setIsEditing(false);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -69,28 +178,50 @@ export default function YearScreen() {
             />
           </Svg>
         </TouchableOpacity>
-        <View>
+        <View style={styles.headerTitle}>
           <Text style={styles.title}>YEARLY CONSISTENCY</Text>
-          <Text style={styles.subtitle}>{year} · {checkinsThisYear} CHECK-INS</Text>
+          <Text style={styles.subtitle}>{year} · {fullDaysThisYear} FULL DAYS</Text>
         </View>
+        {!isEditing && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Edit consistency"
+            activeOpacity={0.7}
+            style={styles.editButton}
+            onPress={handleEditPress}
+          >
+            <Text style={styles.editButtonText}>EDIT</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.months}>
-          {Array.from({ length: 12 }, (_, monthIndex) => {
-            const month = dayjs().year(year).month(monthIndex).startOf('month');
-            const weeks = getMonthCells(month);
+      {isEditing && (
+        <View style={styles.editNotice}>
+          <Text style={styles.editNoticeText}>TAP A DAY: RED → TOP → BOTTOM → FULL</Text>
+        </View>
+      )}
 
-            return (
-              <View key={monthIndex} style={styles.monthCard}>
-                <Text style={styles.monthTitle}>{month.format('MMM').toUpperCase()}</Text>
+      <FlatList
+        data={monthRows}
+        keyExtractor={(row) => row.key}
+        contentContainerStyle={[styles.content, isEditing && styles.contentEditing]}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        removeClippedSubviews
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item: row }) => (
+          <View style={styles.monthRow}>
+            {row.months.map((month) => (
+              <View key={month.key} style={styles.monthCard}>
+                <Text style={styles.monthTitle}>{month.title}</Text>
                 <View style={styles.weekRow}>
                   {DAY_HEADERS.map((label, index) => (
                     <Text key={index} style={styles.dayHeader}>{label}</Text>
                   ))}
                 </View>
 
-                {weeks.map((week, weekIndex) => (
+                {month.weeks.map((week, weekIndex) => (
                   <View key={weekIndex} style={styles.weekRow}>
                     {week.map((cell, dayIndex) => {
                       if (!cell.date || cell.day === null) {
@@ -98,41 +229,110 @@ export default function YearScreen() {
                       }
 
                       const dateString = cell.date.format('YYYY-MM-DD');
-                      const isChecked = historySet.has(dateString);
+                      const primaryIsCheckedIn = historySet.has(dateString);
+                      const secondaryIsCheckedIn = secondaryHistorySet.has(dateString);
+                      const completionCount = Number(primaryIsCheckedIn)
+                        + Number(secondaryIsCheckedIn);
+                      const completionState = completionCount === 2
+                        ? 3
+                        : secondaryIsCheckedIn ? 1 : primaryIsCheckedIn ? 2 : 0;
+                      const hasCheckin = completionCount > 0;
+                      const isComplete = completionCount === 2;
                       const isToday = cell.date.isSame(today, 'day');
                       const isFuture = cell.date.isAfter(today, 'day');
+                      const dayStyle = [
+                        styles.dayCell,
+                        !hasCheckin && !isFuture && (!isToday || isEditing) && styles.missedDay,
+                        isFuture && styles.futureDay,
+                        isEditing && !isFuture && styles.editableDay,
+                      ];
+                      const dayContent = (
+                        <>
+                          {isToday && !hasCheckin && !isEditing && (
+                            <View collapsable={false} pointerEvents="none" style={styles.today} />
+                          )}
+                          {hasCheckin && (
+                            <LiquidFill
+                              borderRadius={4}
+                              position={isComplete ? 'full' : primaryIsCheckedIn ? 'bottom' : 'top'}
+                            />
+                          )}
+                          <View collapsable={false} pointerEvents="none" style={styles.dayForeground}>
+                            <Text
+                              style={[
+                                styles.dayText,
+                                isComplete && styles.checkedDayText,
+                                hasCheckin && !isComplete && styles.halfDayText,
+                                !hasCheckin && !isFuture && (!isToday || isEditing) && styles.missedDayText,
+                                isToday && !hasCheckin && !isEditing && styles.todayText,
+                              ]}
+                            >
+                              {cell.day}
+                            </Text>
+                          </View>
+                        </>
+                      );
+
+                      if (!isEditing || isFuture) {
+                        return (
+                          <View key={dayIndex} style={dayStyle}>
+                            {dayContent}
+                          </View>
+                        );
+                      }
 
                       return (
-                        <View
+                        <TouchableOpacity
                           key={dayIndex}
-                          style={[
-                            styles.dayCell,
-                            isChecked && styles.checkedDay,
-                            !isChecked && !isFuture && !isToday && styles.missedDay,
-                            isToday && !isChecked && styles.today,
-                            isFuture && styles.futureDay,
-                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            dateString + ', '
+                            + ['missed', 'top half', 'bottom half', 'fully complete'][completionState]
+                          }
+                          activeOpacity={0.65}
+                          onPress={() => {
+                            handleDayPress(cell.date!, primaryIsCheckedIn, secondaryIsCheckedIn);
+                          }}
+                          style={dayStyle}
                         >
-                          <Text
-                            style={[
-                              styles.dayText,
-                              isChecked && styles.checkedDayText,
-                              !isChecked && !isFuture && !isToday && styles.missedDayText,
-                              isToday && !isChecked && styles.todayText,
-                            ]}
-                          >
-                            {cell.day}
-                          </Text>
-                        </View>
+                          {dayContent}
+                        </TouchableOpacity>
                       );
                     })}
                   </View>
                 ))}
               </View>
-            );
-          })}
+            ))}
+          </View>
+        )}
+      />
+
+      {isEditing && (
+        <View style={styles.editActions}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Discard consistency changes"
+            activeOpacity={0.75}
+            disabled={isSaving}
+            style={[styles.editAction, styles.discardButton, isSaving && styles.editActionDisabled]}
+            onPress={handleDiscard}
+          >
+            <Text style={[styles.editActionText, styles.discardButtonText]}>DISCARD</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Confirm consistency changes"
+            activeOpacity={0.75}
+            disabled={isSaving}
+            style={[styles.editAction, styles.confirmButton, isSaving && styles.editActionDisabled]}
+            onPress={() => { void handleConfirm(); }}
+          >
+            <Text style={[styles.editActionText, styles.confirmButtonText]}>
+              {isSaving ? 'SAVING…' : 'CONFIRM'}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -146,6 +346,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  headerTitle: {
+    flex: 1,
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -155,6 +358,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
     borderColor: colors.borderSelf,
+  },
+  editButton: {
+    minWidth: 54,
+    height: 36,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(85, 234, 77, 0.28)',
+    backgroundColor: 'rgba(85, 234, 77, 0.05)',
+  },
+  editButtonText: {
+    color: colors.primary,
+    fontFamily: fonts.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  editNotice: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(85, 234, 77, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(85, 234, 77, 0.18)',
+    alignItems: 'center',
+  },
+  editNoticeText: {
+    color: colors.primary,
+    fontFamily: fonts.bold,
+    fontSize: 9,
+    letterSpacing: 0.8,
   },
   title: {
     color: colors.text,
@@ -170,11 +406,57 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   content: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl },
-  months: {
+  contentEditing: {
+    paddingBottom: 120,
+  },
+  editActions: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.bg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSelf,
+  },
+  editAction: {
+    flex: 1,
+    height: 48,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  discardButton: {
+    backgroundColor: colors.danger,
+    borderColor: colors.danger,
+  },
+  confirmButton: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  editActionDisabled: {
+    opacity: 0.55,
+  },
+  editActionText: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+  },
+  discardButtonText: {
+    color: '#ffffff',
+  },
+  confirmButtonText: {
+    color: colors.bg,
+  },
+  monthRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    rowGap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   monthCard: {
     width: '49%',
@@ -206,12 +488,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkedDay: { backgroundColor: colors.primary },
+  editableDay: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
   missedDay: { backgroundColor: colors.danger },
-  today: { borderWidth: 1, borderColor: colors.primary },
+  today: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
   futureDay: { backgroundColor: 'rgba(255, 255, 255, 0.04)' },
+  dayForeground: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    elevation: 1,
+  },
   dayText: { color: '#2E2E3E', fontFamily: fonts.medium, fontSize: 6 },
   checkedDayText: { color: colors.bg, fontFamily: fonts.bold },
+  halfDayText: { color: colors.bg, fontFamily: fonts.bold, zIndex: 1 },
   missedDayText: { color: '#ffffff', fontFamily: fonts.bold },
   todayText: { color: colors.primary, fontFamily: fonts.bold },
 });

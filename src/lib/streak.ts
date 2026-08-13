@@ -1,76 +1,79 @@
 // ─── MinFit — Streak Logic ─────────────────────────────
 
 import dayjs from 'dayjs';
-import { StreakData } from '../types';
+import { HabitId, StreakData } from '../types';
 
-/**
- * Process a daily check-in.
- * - If already checked in today → no-op.
- * - If last check-in was yesterday → extend streak.
- * - Otherwise → reset to 1.
- */
-export function processCheckin(current: StreakData): StreakData {
+export function processCheckin(current: StreakData, habit: HabitId = 'primary'): StreakData {
   const today = dayjs().format('YYYY-MM-DD');
-
-  // Already checked in today
-  if (current.lastCheckinDate === today) {
-    return current;
-  }
-
   const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
-  let newStreak: number;
+  const isSecondary = habit === 'secondary';
+  const lastCheckinDate = isSecondary ? current.secondaryLastCheckinDate : current.lastCheckinDate;
 
-  if (current.lastCheckinDate === yesterday) {
-    // Continuing the streak
-    newStreak = current.currentStreak + 1;
-  } else {
-    // Streak broken or first check-in
-    newStreak = 1;
+  if (lastCheckinDate === today) return current;
+
+  const previousStreak = isSecondary ? current.secondaryCurrentStreak : current.currentStreak;
+  const nextStreak = lastCheckinDate === yesterday ? previousStreak + 1 : 1;
+
+  if (isSecondary) {
+    return {
+      ...current,
+      secondaryCurrentStreak: nextStreak,
+      secondaryLongestStreak: Math.max(current.secondaryLongestStreak, nextStreak),
+      secondaryLastCheckinDate: today,
+      secondaryCheckinHistory: [...new Set([...current.secondaryCheckinHistory, today])],
+    };
   }
-
-  const newLongest = Math.max(current.longestStreak, newStreak);
 
   return {
-    currentStreak: newStreak,
-    longestStreak: newLongest,
+    ...current,
+    currentStreak: nextStreak,
+    longestStreak: Math.max(current.longestStreak, nextStreak),
     lastCheckinDate: today,
-    checkinHistory: [...current.checkinHistory, today],
+    checkinHistory: [...new Set([...current.checkinHistory, today])],
   };
 }
 
-/**
- * Check if user has checked in today.
- */
-export function hasCheckedInToday(streak: StreakData): boolean {
-  const today = dayjs().format('YYYY-MM-DD');
-  return streak.lastCheckinDate === today;
+export function hasCheckedInToday(streak: StreakData, habit: HabitId = 'primary'): boolean {
+  const lastCheckinDate = habit === 'secondary'
+    ? streak.secondaryLastCheckinDate
+    : streak.lastCheckinDate;
+  return lastCheckinDate === dayjs().format('YYYY-MM-DD');
 }
 
-/**
- * Compute the "live" current streak considering today's date.
- * If the user hasn't checked in today and the last check-in
- * wasn't yesterday, the streak has been broken → return 0.
- */
-export function getLiveStreak(streak: StreakData): number {
-  if (!streak.lastCheckinDate) return 0;
+export function getLiveStreak(streak: StreakData, habit: HabitId = 'primary'): number {
+  const lastCheckinDate = habit === 'secondary'
+    ? streak.secondaryLastCheckinDate
+    : streak.lastCheckinDate;
+  const currentStreak = habit === 'secondary'
+    ? streak.secondaryCurrentStreak
+    : streak.currentStreak;
+
+  if (!lastCheckinDate) return 0;
 
   const today = dayjs().format('YYYY-MM-DD');
   const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
-
-  if (
-    streak.lastCheckinDate === today ||
-    streak.lastCheckinDate === yesterday
-  ) {
-    return streak.currentStreak;
-  }
-
-  // Streak is broken
-  return 0;
+  return lastCheckinDate === today || lastCheckinDate === yesterday ? currentStreak : 0;
 }
 
-/**
- * Generate a unique ID.
- */
+export function calculateStreakStats(history: string[]) {
+  const dates = [...new Set(history)].sort();
+  let longestStreak = 0;
+  let run = 0;
+  let previousDate: string | null = null;
+
+  for (const date of dates) {
+    run = previousDate && dayjs(date).diff(dayjs(previousDate), 'day') === 1 ? run + 1 : 1;
+    longestStreak = Math.max(longestStreak, run);
+    previousDate = date;
+  }
+
+  return {
+    currentStreak: run,
+    longestStreak,
+    lastCheckinDate: dates.at(-1) ?? null,
+  };
+}
+
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
 }
