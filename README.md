@@ -23,8 +23,12 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="./assets/minfit-daily-showcase.png" alt="MinFit daily tracking screen" /></td>
-    <td width="50%"><img src="./assets/minfit-consistency-showcase.png" alt="MinFit consistency screen" /></td>
+    <td width="50%" valign="top">
+      <p align="center"><img src="./assets/minfit-daily-showcase.png" alt="MinFit daily tracking screen" width="260" /></p>
+    </td>
+    <td width="50%" valign="top">
+      <p align="center"><img src="./assets/minfit-consistency-showcase.png" alt="MinFit consistency screen" width="260" /></p>
+    </td>
   </tr>
 </table>
 
