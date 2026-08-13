@@ -21,7 +21,7 @@
 
 ---
 
-<table>
+<table width="100%">
   <tr>
     <td width="50%" valign="top">
       <p align="center"><img src="./assets/minfit-daily-showcase.png" alt="MinFit daily tracking screen" width="260" /></p>
