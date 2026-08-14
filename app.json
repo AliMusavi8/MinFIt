@@ -14,7 +14,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#081A35",
         "foregroundImage": "./assets/android-icon-transparent.png",
-        "backgroundImage": "./assets/mobile-app-icon-adaptive-padded.png",
+        "backgroundImage": "./assets/app_icon_smaller.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -33,7 +33,9 @@
         "expo-build-properties",
         {
           "android": {
-            "buildArchs": ["arm64-v8a"],
+            "buildArchs": [
+              "arm64-v8a"
+            ],
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "enableBundleCompression": true
