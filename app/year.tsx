@@ -73,6 +73,7 @@ export default function YearScreen() {
 
   useFocusEffect(useCallback(() => {
     let isActive = true;
+    setIsEditing(false);
     getStreak().then((storedStreak) => {
       if (isActive) {
         setCheckinHistory(storedStreak.checkinHistory);
@@ -158,6 +159,11 @@ export default function YearScreen() {
     setIsEditing(false);
   };
 
+  const handleBackPress = () => {
+    if (isEditing) handleDiscard();
+    router.back();
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -166,7 +172,7 @@ export default function YearScreen() {
           accessibilityLabel="Back to home"
           activeOpacity={0.7}
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBackPress}
         >
           <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
             <Path
@@ -195,20 +201,21 @@ export default function YearScreen() {
         )}
       </View>
 
-      {isEditing && (
-        <View style={styles.editNotice}>
-          <Text style={styles.editNoticeText}>TAP A DAY: RED → TOP → BOTTOM → FULL</Text>
-        </View>
-      )}
-
       <FlatList
         data={monthRows}
+        extraData={[isEditing, checkinHistory, secondaryCheckinHistory]}
         keyExtractor={(row) => row.key}
+        ListHeaderComponent={isEditing ? (
+          <View style={styles.editNotice}>
+            <Text style={styles.editNoticeText}>TAP A DAY: RED &gt; TOP &gt; BOTTOM &gt; FULL</Text>
+          </View>
+        ) : null}
+        stickyHeaderIndices={isEditing ? [0] : undefined}
         contentContainerStyle={[styles.content, isEditing && styles.contentEditing]}
         initialNumToRender={2}
         maxToRenderPerBatch={2}
         windowSize={3}
-        removeClippedSubviews
+        removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
         renderItem={({ item: row }) => (
           <View style={styles.monthRow}>
@@ -377,14 +384,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   editNotice: {
-    marginHorizontal: spacing.md,
+    alignSelf: 'center',
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: 'rgba(85, 234, 77, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(85, 234, 77, 0.18)',
-    alignItems: 'center',
   },
   editNoticeText: {
     color: colors.primary,
@@ -411,17 +418,11 @@ const styles = StyleSheet.create({
   },
   editActions: {
     position: 'absolute',
-    right: 0,
-    bottom: 0,
-    left: 0,
+    right: spacing.md,
+    bottom: spacing.md,
+    left: spacing.md,
     flexDirection: 'row',
     gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.bg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderSelf,
   },
   editAction: {
     flex: 1,

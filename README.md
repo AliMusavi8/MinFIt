@@ -1,6 +1,6 @@
 <div align="center">
   <kbd>
-    <img src="./assets/Mobile_app_icon.png" alt="MinFit logo" width="120" />
+    <img src="./assets/app_icon.png" alt="MinFit logo" width="120" />
   </kbd>
 
   <h1>MinFit</h1>
@@ -21,16 +21,11 @@
 
 ---
 
-<table width="100%">
-  <tr>
-    <td width="50%" valign="top">
-      <p align="center"><img src="./assets/minfit-daily-showcase.png" alt="MinFit daily tracking screen" width="260" /></p>
-    </td>
-    <td width="50%" valign="top">
-      <p align="center"><img src="./assets/minfit-consistency-showcase.png" alt="MinFit consistency screen" width="260" /></p>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="./assets/minfit-daily-showcase.png" alt="MinFit daily tracking screen" width="260" />
+  &nbsp;&nbsp;
+  <img src="./assets/minfit-consistency-showcase.png" alt="MinFit consistency screen" width="260" />
+</p>
 
 MinFit helps you build two daily habits without accounts, subscriptions, or unnecessary complexity. Your check-ins, streaks, and notes stay on your device.
 

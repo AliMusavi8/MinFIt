@@ -6,9 +6,8 @@ import Svg, { Path } from 'react-native-svg';
 import { colors, fonts, radius, spacing, typography } from '../src/lib/theme';
 
 const GUIDE_ITEMS = [
-  'Swipe left or right across the orb to switch between your habits.',
   'Press and hold the orb for 3 seconds to complete the selected habit.',
-  'If you want to change you streak history, you can do so on the home screen by \n\nMonthly Consistency → 12 Months → Edit.',
+  'If you want to change you streak history, you can do so on the home screen by \n\nMonthly Consistency > 12 Months > Edit.',
 ];
 
 export default function GuideScreen() {
@@ -34,10 +33,7 @@ export default function GuideScreen() {
             />
           </Svg>
         </TouchableOpacity>
-        <View>
-          <Text style={styles.title}>IMPORTANT THINGS TO KNOW</Text>
-          <Text style={styles.subtitle}>A QUICK GUIDE TO MINFIT</Text>
-        </View>
+        <Text style={styles.title}>IMPORTANT THINGS TO KNOW</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -83,13 +79,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 14,
     letterSpacing: 1.2,
-  },
-  subtitle: {
-    marginTop: 3,
-    color: colors.textMuted,
-    fontFamily: fonts.medium,
-    fontSize: 9,
-    letterSpacing: 0.8,
   },
   content: {
     paddingHorizontal: spacing.lg,

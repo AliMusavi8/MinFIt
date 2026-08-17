@@ -1,14 +1,14 @@
 // ─── MinFit — Flippable Two-Habit Check-in Orb ──────────
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   TouchableOpacity,
+  Pressable,
   Text,
   StyleSheet,
   View,
   Animated,
   Easing,
-  PanResponder,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { HabitId } from '../types';
@@ -28,7 +28,6 @@ const CORE_SIZE = 186;
 const RING_RADIUS = 99;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const HOLD_DURATION = 3000;
-const SWIPE_THRESHOLD = 42;
 
 export function CheckinButton({
   primaryIsCheckedIn,
@@ -41,6 +40,8 @@ export function CheckinButton({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const holdProgress = useRef(new Animated.Value(0)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
+  const leverAnim = useRef(new Animated.Value(0)).current;
+  const leverFillAnim = useRef(new Animated.Value(0)).current;
   const holdCompleted = useRef(false);
   const flipping = useRef(false);
   const [progress, setProgress] = useState(0);
@@ -78,6 +79,24 @@ export function CheckinButton({
     return () => holdProgress.removeListener(listenerId);
   }, [holdProgress]);
 
+  useEffect(() => {
+    const toValue = activeHabit === 'primary' ? 0 : 1;
+    Animated.parallel([
+      Animated.timing(leverAnim, {
+        toValue,
+        duration: 240,
+        easing: Easing.bezier(0.65, 1.35, 0.5, 1),
+        useNativeDriver: true,
+      }),
+      Animated.timing(leverFillAnim, {
+        toValue,
+        duration: 240,
+        easing: Easing.bezier(0.65, 1.35, 0.5, 1),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [activeHabit, leverAnim, leverFillAnim]);
+
   const cancelHold = useCallback(() => {
     if (holdCompleted.current) return;
     holdProgress.stopAnimation();
@@ -114,18 +133,6 @@ export function CheckinButton({
     });
   }, [cancelHold, flipAnim]);
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_, gesture) => (
-      Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy)
-    ),
-    onPanResponderGrant: cancelHold,
-    onPanResponderRelease: (_, gesture) => {
-      if (Math.abs(gesture.dx) >= SWIPE_THRESHOLD) flipOrb();
-    },
-    onPanResponderTerminate: cancelHold,
-  }), [cancelHold, flipOrb]);
-
   const startHold = () => {
     if (isCheckedIn || flipping.current) return;
     holdCompleted.current = false;
@@ -149,15 +156,29 @@ export function CheckinButton({
     outputRange: ['-90deg', '0deg', '90deg'],
   });
 
+  const leverRotation = leverAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-25deg', '25deg'],
+  });
+
+  const leverOffset = leverAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-20, 20],
+  });
+
+  const leverFillColor = leverFillAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.bg, colors.primary],
+  });
+
   return (
     <View style={styles.wrapper}>
       <Animated.View
-        {...panResponder.panHandlers}
         style={{ transform: [{ perspective: 900 }, { rotateY }, { scale: pulseAnim }] }}
       >
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel={habitLabel + ': ' + streakCount + ' day streak. Hold three seconds to check in. Swipe to switch habit.'}
+          accessibilityLabel={habitLabel + ': ' + streakCount + ' day streak. Hold three seconds to check in.'}
           onPressIn={startHold}
           onPressOut={cancelHold}
           pressRetentionOffset={32}
@@ -195,10 +216,33 @@ export function CheckinButton({
         </TouchableOpacity>
       </Animated.View>
 
-      <View style={styles.pageDots}>
-        <View style={[styles.pageDot, activeHabit === 'primary' && styles.pageDotActive]} />
-        <View style={[styles.pageDot, activeHabit === 'secondary' && styles.pageDotActive]} />
-      </View>
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityLabel="Switch habit"
+        accessibilityState={{ checked: activeHabit === 'secondary' }}
+        hitSlop={12}
+        onPress={flipOrb}
+        style={styles.toggleContainer}
+      >
+        <View pointerEvents="none" style={styles.toggleHandleWrapper}>
+          <Animated.View
+            style={[
+              styles.toggleHandle,
+              { transform: [{ translateX: leverOffset }, { rotate: leverRotation }] },
+            ]}
+          >
+            <View style={styles.toggleHandleKnob}>
+              <View style={styles.toggleHandleKnobHighlight} />
+            </View>
+            <View style={styles.toggleHandleBar} />
+          </Animated.View>
+        </View>
+        <View pointerEvents="none" style={styles.toggleBase}>
+          <Animated.View
+            style={[styles.toggleBaseInside, { backgroundColor: leverFillColor }]}
+          />
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -208,7 +252,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.xl,
     marginBottom: spacing.xs,
-    minHeight: 278,
+    minHeight: 302,
     justifyContent: 'center',
   },
   orb: {
@@ -263,20 +307,78 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     letterSpacing: 1.2,
   },
-  pageDots: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
+  toggleContainer: {
+    position: 'relative',
+    width: 72,
+    height: 62,
+    marginTop: spacing.sm,
   },
-  pageDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
+  toggleHandleWrapper: {
+    position: 'absolute',
+    zIndex: 3,
+    top: 0,
+    left: -20,
+    width: 112,
+    height: 57,
     overflow: 'hidden',
-    backgroundColor: colors.surfaceContainerHighest,
   },
-  pageDotActive: {
-    width: 18,
+  toggleHandle: {
+    position: 'absolute',
+    top: 7,
+    left: 40,
+    width: 32,
+    height: 52,
+    alignItems: 'center',
+    transformOrigin: 'center bottom',
+  },
+  toggleHandleKnob: {
+    zIndex: 1,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.primaryDark,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 7,
+    elevation: 4,
+  },
+  toggleHandleKnobHighlight: {
+    position: 'absolute',
+    top: 4,
+    left: 6,
+    width: 8,
+    height: 6,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.48)',
+  },
+  toggleHandleBar: {
+    position: 'absolute',
+    top: 22,
+    width: 9,
+    height: 34,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+    backgroundColor: colors.surfaceContainerLow,
+  },
+  toggleBase: {
+    position: 'absolute',
+    zIndex: 2,
+    bottom: 0,
+    width: 72,
+    height: 22,
+    borderRadius: 12,
+    padding: 2,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceBright,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+  },
+  toggleBaseInside: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
 });
